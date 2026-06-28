@@ -58,6 +58,12 @@ class User extends Authenticatable
         return $this->hasOne(Kthr::class, 'registered_by_user_id', 'user_id');
     }
 
+
+    public function tptkb(): HasOne
+    {
+        return $this->hasOne(Tptkb::class, 'registered_by_user_id', 'user_id');
+    }
+
     /**
      * Relasi ke profil PBPHH (hanya satu)
      */

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Kthr;
+use App\Models\Tptkb;
 use App\Models\PbphhProfile;
 use App\Models\PermintaanKerjasama;
 
@@ -17,6 +18,9 @@ class HomeController extends Controller
             'total_kthr' => Kthr::whereHas('user', function ($query) {
                 $query->where('approval_status', 'Approved');
             })->count(),
+            'total_tptkb' => Tptkb::whereHas('user', function ($query) {
+                $query->where('approval_status', 'Approved');
+            })->count(),
             'total_pbphh' => PbphhProfile::whereHas('user', function ($query) {
                 $query->where('approval_status', 'Approved');
             })->count(),
@@ -26,17 +30,17 @@ class HomeController extends Controller
 
         // Data lokasi KTHR dengan informasi lengkap
         $kthrLokasi = Kthr::select(
-                'kthr_name as nama', 
-                'coordinate_lat as lat', 
-                'coordinate_lng as lng',
-                'nama_pendamping',
-                'phone',
-                'alamat_sekretariat as alamat',
-                'luas_areal_ha',
-                'jumlah_anggota',
-                'is_siap_mitra',
-                'is_siap_tebang'
-            )
+            'kthr_name as nama',
+            'coordinate_lat as lat',
+            'coordinate_lng as lng',
+            'nama_pendamping',
+            'phone',
+            'alamat_sekretariat as alamat',
+            'luas_areal_ha',
+            'jumlah_anggota',
+            'is_siap_mitra',
+            'is_siap_tebang'
+        )
             ->whereNotNull('coordinate_lat')
             ->whereNotNull('coordinate_lng')
             ->whereHas('user', function ($query) {
@@ -51,17 +55,43 @@ class HomeController extends Controller
                 return $item;
             });
 
+        // Data lokasi TPTKB dengan informasi lengkap
+        $tptkbLokasi = Tptkb::select(
+            'tptkb_name as nama',
+            'coordinate_lat as lat',
+            'coordinate_lng as lng',
+            'nama_pendamping_tptkb',
+            'phone',
+            'alamat_tptkb as alamat',
+
+            'is_siap_mitra',
+
+        )
+            ->whereNotNull('coordinate_lat')
+            ->whereNotNull('coordinate_lng')
+            ->whereHas('user', function ($query) {
+                $query->where('approval_status', 'Approved');
+            })
+            ->with(['user:user_id,email', 'region:region_id,region_name'])
+            ->get()
+            ->map(function ($item) {
+                $item->type = 'TPTKB';
+                $item->email = $item->user ? $item->user->email : null;
+                $item->region_name = $item->region ? $item->region->region_name : null;
+                return $item;
+            });
+
         // Data lokasi PBPHH dengan informasi lengkap
         $pbphhLokasi = PbphhProfile::select(
-                'company_name as nama', 
-                'coordinate_lat as lat', 
-                'coordinate_lng as lng',
-                'penanggung_jawab',
-                'phone',
-                'alamat_perusahaan as alamat',
-                'kapasitas_izin_produksi_m3',
-                'rencana_produksi_tahunan_m3'
-            )
+            'company_name as nama',
+            'coordinate_lat as lat',
+            'coordinate_lng as lng',
+            'penanggung_jawab',
+            'phone',
+            'alamat_perusahaan as alamat',
+            'kapasitas_izin_produksi_m3',
+            'rencana_produksi_tahunan_m3'
+        )
             ->whereNotNull('coordinate_lat')
             ->whereNotNull('coordinate_lng')
             ->whereHas('user', function ($query) {
@@ -76,7 +106,10 @@ class HomeController extends Controller
             });
 
         // Gabungkan keduanya
-        $lokasi = $kthrLokasi->concat($pbphhLokasi);
+        $lokasi = collect()
+            ->concat($kthrLokasi)
+            ->concat($tptkbLokasi)
+            ->concat($pbphhLokasi);
 
         return view('home.index', compact('stats', 'lokasi'));
     }
@@ -89,7 +122,7 @@ class HomeController extends Controller
             [
                 'icon' => 'fas fa-shield-alt',
                 'title' => 'Terverifikasi & Aman',
-                'description' => 'Semua KTHR dan industri telah melalui proses verifikasi ketat oleh CDK dan Dinas Provinsi'
+                'description' => 'Semua KTHR/TPTKB/PBPHH telah melalui proses verifikasi ketat oleh CDK dan Dinas Provinsi'
             ],
             [
                 'icon' => 'fas fa-handshake',
@@ -118,7 +151,7 @@ class HomeController extends Controller
             [
                 'step' => 1,
                 'title' => 'Pendaftaran',
-                'description' => 'KTHR/Industri mendaftar dengan dokumen lengkap',
+                'description' => 'KTHR/TPTKB/PBPHH mendaftar dengan dokumen lengkap',
                 'icon' => 'fas fa-user-plus',
                 'color' => 'primary'
             ],

@@ -135,8 +135,10 @@
                     <div class="status-badge">Status: Sedang Diproses</div>
                     <p class="mb-4">
                         Terima kasih telah mendaftar di JASA KAYA. Akun Anda sedang dalam proses verifikasi oleh 
-                        @if(Auth::user()->role === 'KTHR_PENYULUH')
+                        @if(Auth::user()->role === 'KTHR_PENYULUH' || Auth::user()->role === 'TPTKB')
                             <strong>CDK (Cabang Dinas Kehutanan)</strong>.
+                        @elseif(Auth::user()->role === 'PBPHH')
+                            <strong>Dinas Kehutanan Provinsi</strong>.
                         @else
                             <strong>Dinas Kehutanan Provinsi</strong>.
                         @endif
@@ -145,7 +147,7 @@
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
                         <strong>Estimasi Waktu Verifikasi:</strong><br>
-                        @if(Auth::user()->role === 'KTHR_PENYULUH')
+                        @if(Auth::user()->role === 'KTHR_PENYULUH' || Auth::user()->role === 'TPTKB')
                             1-3 hari kerja
                         @else
                             3-5 hari kerja
@@ -158,7 +160,10 @@
                             @if(Auth::user()->role === 'KTHR_PENYULUH')
                                 <div class="doc-item"><i class="fas fa-check text-success me-2"></i>KTP Ketua KTHR</div>
                                 <div class="doc-item"><i class="fas fa-check text-success me-2"></i>SK Pendaftaran KTHR</div>
-                            @else
+                            @elseif(Auth::user()->role === 'TPTKB')
+                                <div class="doc-item"><i class="fas fa-check text-success me-2"></i>KTP Ketua TPTKB</div>
+                                <div class="doc-item"><i class="fas fa-check text-success me-2"></i>SK TPTKB</div>
+                            @elseif(Auth::user()->role === 'PBPHH')
                                 <div class="doc-item"><i class="fas fa-check text-success me-2"></i>NIB (Nomor Induk Berusaha)</div>
                                 <div class="doc-item"><i class="fas fa-check text-success me-2"></i>SK PBPHH</div>
                             @endif

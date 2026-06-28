@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\Kthr;
+use App\Models\Tptkb;
 use App\Models\PbphhProfile;
 use App\Models\PermintaanKerjasama;
 use App\Models\Pertemuan;
@@ -19,7 +20,7 @@ class CdkController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
         // Statistik untuk dashboard
         $stats = [
@@ -27,58 +28,109 @@ class CdkController extends Controller
                 ->where('role', 'KTHR_PENYULUH')
                 ->where('approval_status', 'Pending')
                 ->count(),
+
+            'pending_tptkb_approvals' => User::where('region_id', $region->region_id)
+                ->where('role', 'TPTKB')
+                ->where('approval_status', 'Pending')
+                ->count(),
+
             'pending_pbphh_approvals' => User::where('region_id', $region->region_id)
                 ->where('role', 'PBPHH')
                 ->where('approval_status', 'Pending')
                 ->count(),
-            'partnerships_need_facilitation' => PermintaanKerjasama::whereHas('kthr.user', function ($query) use ($region) {
-                $query->where('region_id', $region->region_id);
+
+            'partnerships_need_facilitation' => PermintaanKerjasama::where(function ($q) use ($region) {
+                $q->whereHas('kthr.user', function ($query) use ($region) {
+                    $query->where('region_id', $region->region_id);
+                })->orWhereHas('tptkb.user', function ($query) use ($region) {
+                    $query->where('region_id', $region->region_id);
+                });
             })
                 ->where('status', 'Disetujui')
                 ->count(),
-            'scheduled_meetings' => Pertemuan::whereHas('permintaanKerjasama.kthr.user', function ($query) use ($region) {
-                $query->where('region_id', $region->region_id);
+
+            'scheduled_meetings' => Pertemuan::whereHas('permintaanKerjasama', function ($q) use ($region) {
+                $q->whereHas('kthr.user', function ($query) use ($region) {
+                    $query->where('region_id', $region->region_id);
+                })->orWhereHas('tptkb.user', function ($query) use ($region) {
+                    $query->where('region_id', $region->region_id);
+                });
             })
                 ->where('status', 'Dijadwalkan')
                 ->where('scheduled_time', '>', now())
                 ->count(),
+
             'active_kthrs' => User::where('region_id', $region->region_id)
                 ->where('role', 'KTHR_PENYULUH')
                 ->where('approval_status', 'Approved')
                 ->count(),
+
+            'active_tptkbs' => User::where('region_id', $region->region_id)
+                ->where('role', 'TPTKB')
+                ->where('approval_status', 'Approved')
+                ->count(),
+
             'active_pbphhs' => User::where('region_id', $region->region_id)
                 ->where('role', 'PBPHH')
                 ->where('approval_status', 'Approved')
-                ->count()
+                ->count(),
         ];
 
         // Tugas mendesak
         $urgentTasks = [
+
             'pending_approvals' => User::where('region_id', $region->region_id)
-                ->where('role', 'KTHR_PENYULUH')
+                ->whereIn('role', ['KTHR_PENYULUH', 'TPTKB'])
                 ->where('approval_status', 'Pending')
-                ->with(['kthr'])
+                ->with(['kthr', 'tptkb'])
                 ->orderBy('created_at')
                 ->limit(5)
                 ->get(),
-            'partnerships_to_facilitate' => PermintaanKerjasama::whereHas('kthr.user', function ($query) use ($region) {
-                $query->where('region_id', $region->region_id);
+
+            'partnerships_to_facilitate' => PermintaanKerjasama::where(function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($query) use ($region) {
+                    $query->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($query) use ($region) {
+                        $query->where('region_id', $region->region_id);
+                    });
+
             })
                 ->where('status', 'Disetujui')
-                ->with(['kthr.user', 'pbphhProfile.user'])
+                ->with([
+                    'kthr.user',
+                    'tptkb.user',
+                    'pbphhProfile.user'
+                ])
                 ->orderBy('updated_at')
                 ->limit(5)
                 ->get(),
-            'upcoming_meetings' => Pertemuan::whereHas('permintaanKerjasama.kthr.user', function ($query) use ($region) {
-                $query->where('region_id', $region->region_id);
+
+            'upcoming_meetings' => Pertemuan::whereHas('permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($query) use ($region) {
+                    $query->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($query) use ($region) {
+                        $query->where('region_id', $region->region_id);
+                    });
+
             })
                 ->where('status', 'Dijadwalkan')
                 ->where('scheduled_time', '>', now())
                 ->where('scheduled_time', '<', now()->addDays(7))
-                ->with(['permintaanKerjasama.kthr.user', 'permintaanKerjasama.pbphhProfile.user'])
+                ->with([
+                    'permintaanKerjasama.kthr.user',
+                    'permintaanKerjasama.tptkb.user',
+                    'permintaanKerjasama.pbphhProfile.user'
+                ])
                 ->orderBy('scheduled_time')
                 ->limit(5)
                 ->get()
+
         ];
 
         return view('cdk.dashboard', compact('region', 'stats', 'urgentTasks'));
@@ -87,11 +139,11 @@ class CdkController extends Controller
     public function approvals(Request $request)
     {
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
         $query = User::where('region_id', $region->region_id)
-            ->where('role', 'KTHR_PENYULUH')
-            ->with(['kthr']);
+            ->whereIn('role', ['KTHR_PENYULUH', 'TPTKB'])
+            ->with(['kthr', 'tptkb']);
 
         // Filter berdasarkan status
         if ($request->filled('status')) {
@@ -100,8 +152,10 @@ class CdkController extends Controller
             $query->where('approval_status', 'Pending');
         }
 
-        // CDK hanya dapat meng-approve KTHR di wilayahnya
-        // Filter role tidak diperlukan karena sudah dibatasi ke KTHR_PENYULUH
+        // Filter berdasarkan role (opsional)
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
 
         // Search berdasarkan email
         if ($request->filled('search')) {
@@ -113,10 +167,12 @@ class CdkController extends Controller
         return view('cdk.approvals', compact('users', 'region'));
     }
 
+
+
     public function approve(Request $request, $id)
     {
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
         $targetUser = User::where('user_id', $id)
             ->where('region_id', $region->region_id)
@@ -129,10 +185,17 @@ class CdkController extends Controller
             'approved_at' => now()
         ]);
 
-        $userType = $targetUser->role === 'KTHR_PENYULUH' ? 'KTHR' : 'PBPHH';
+        $userType = match ($targetUser->role) {
+            'KTHR_PENYULUH' => 'KTHR',
+            'TPTKB' => 'TPTKB',
+            'PBPHH' => 'PBPHH',
+            default => 'User'
+        };
 
-        return redirect()->back()->with('success', "Akun {$userType} berhasil disetujui!");
+        return redirect()->back()
+            ->with('success', "Akun {$userType} berhasil disetujui!");
     }
+
 
     public function reject(Request $request, $id)
     {
@@ -141,7 +204,7 @@ class CdkController extends Controller
         ]);
 
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
         $targetUser = User::where('user_id', $id)
             ->where('region_id', $region->region_id)
@@ -155,97 +218,161 @@ class CdkController extends Controller
             'rejection_reason' => $request->rejection_reason
         ]);
 
-        $userType = $targetUser->role === 'KTHR_PENYULUH' ? 'KTHR' : 'PBPHH';
+        $userType = match ($targetUser->role) {
+            'KTHR_PENYULUH' => 'KTHR',
+            'TPTKB' => 'TPTKB',
+            'PBPHH' => 'PBPHH',
+            default => 'User'
+        };
 
-        return redirect()->back()->with('success', "Akun {$userType} berhasil ditolak!");
+        return redirect()->back()
+            ->with('success', "Akun {$userType} berhasil ditolak!");
     }
 
     public function meetings(Request $request)
     {
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
-        $query = Pertemuan::whereHas('permintaanKerjasama.kthr.user', function ($q) use ($region) {
-            $q->where('region_id', $region->region_id);
-        })
-            ->with(['permintaanKerjasama.kthr.user', 'permintaanKerjasama.pbphhProfile.user', 'kesepakatan']);
+        $query = Pertemuan::whereHas('permintaanKerjasama', function ($q) use ($region) {
 
-        // Apply search filter
+            $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                $subQ->where('region_id', $region->region_id);
+            })
+
+                ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                });
+
+        })->with([
+                    'permintaanKerjasama.kthr.user',
+                    'permintaanKerjasama.tptkb.user',
+                    'permintaanKerjasama.pbphhProfile.user',
+                    'kesepakatan'
+                ]);
+
+        // Search
         if ($request->filled('search')) {
             $searchTerm = $request->search;
+
             $query->where(function ($q) use ($searchTerm) {
+
                 $q->whereHas('permintaanKerjasama.kthr', function ($subQ) use ($searchTerm) {
                     $subQ->where('kthr_name', 'like', "%{$searchTerm}%");
                 })
-                ->orWhereHas('permintaanKerjasama.pbphhProfile', function ($subQ) use ($searchTerm) {
-                    $subQ->where('company_name', 'like', "%{$searchTerm}%");
-                })
-                ->orWhere('location', 'like', "%{$searchTerm}%")
-                ->orWhere('meeting_notes', 'like', "%{$searchTerm}%");
+
+                    ->orWhereHas('permintaanKerjasama.tptkb', function ($subQ) use ($searchTerm) {
+                        $subQ->where('tptkb_name', 'like', "%{$searchTerm}%");
+                    })
+
+                    ->orWhereHas('permintaanKerjasama.pbphhProfile', function ($subQ) use ($searchTerm) {
+                        $subQ->where('company_name', 'like', "%{$searchTerm}%");
+                    })
+
+                    ->orWhere('location', 'like', "%{$searchTerm}%")
+                    ->orWhere('meeting_notes', 'like', "%{$searchTerm}%");
             });
         }
 
-        // Filter berdasarkan status
+        // Filter status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter berdasarkan method
+        // Filter method
         if ($request->filled('method')) {
             $query->where('method', $request->method);
         }
 
-        // Filter berdasarkan tanggal
+        // Filter tanggal
         if ($request->filled('date_from')) {
             $query->whereDate('scheduled_time', '>=', $request->date_from);
         }
+
         if ($request->filled('date_to')) {
             $query->whereDate('scheduled_time', '<=', $request->date_to);
         }
 
-        // Apply sorting
+        // Sorting
         $sortBy = $request->get('sort_by', 'scheduled_time');
         $sortOrder = $request->get('sort_order', 'desc');
-        
-        if (in_array($sortBy, ['scheduled_time', 'status', 'method', 'created_at'])) {
+
+        if (
+            in_array($sortBy, [
+                'scheduled_time',
+                'status',
+                'method',
+                'created_at'
+            ])
+        ) {
             $query->orderBy($sortBy, $sortOrder);
         } else {
             $query->orderBy('scheduled_time', 'desc');
         }
 
-        // Handle export request
+        // Export Excel
         if ($request->has('export') && $request->export === 'excel') {
             return $this->exportMeetingsToExcel($query);
         }
-        
-        // Handle AJAX request for updates check
+
+        // AJAX Auto Refresh
         if ($request->ajax()) {
             $lastCheck = $request->get('last_check', 0);
-            $hasUpdates = $query->where('updated_at', '>', date('Y-m-d H:i:s', $lastCheck / 1000))->exists();
-            return response()->json(['hasUpdates' => $hasUpdates]);
+
+            $hasUpdates = $query->where(
+                'updated_at',
+                '>',
+                date('Y-m-d H:i:s', $lastCheck / 1000)
+            )->exists();
+
+            return response()->json([
+                'hasUpdates' => $hasUpdates
+            ]);
         }
 
         $meetings = $query->paginate(15)->withQueryString();
 
         // Permintaan yang perlu dijadwalkan
-        $needScheduling = PermintaanKerjasama::whereHas('kthr.user', function ($q) use ($region) {
-            $q->where('region_id', $region->region_id);
+        $needScheduling = PermintaanKerjasama::where(function ($q) use ($region) {
+
+            $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                $subQ->where('region_id', $region->region_id);
+            })
+
+                ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                });
+
         })
-            ->whereIn('status', ['Disetujui', 'Menunggu Jadwal'])
+            ->whereIn('status', [
+                'Disetujui',
+                'Menunggu Jadwal'
+            ])
             ->whereDoesntHave('pertemuan')
-            ->with(['kthr.user', 'pbphhProfile.user'])
+            ->with([
+                'kthr.user',
+                'tptkb.user',
+                'pbphhProfile.user'
+            ])
             ->get();
 
-        return view('cdk.meetings', compact('meetings', 'needScheduling', 'region'));
+        return view(
+            'cdk.meetings',
+            compact(
+                'meetings',
+                'needScheduling',
+                'region'
+            )
+        );
     }
-    
+
     private function exportMeetingsToExcel($query)
     {
         $meetings = $query->get();
-        
+
         $csvData = [];
         $csvData[] = ['No', 'KTHR', 'PBPHH', 'Tanggal & Waktu', 'Jenis', 'Lokasi', 'Status', 'Kesepakatan', 'Catatan'];
-        
+
         foreach ($meetings as $index => $meeting) {
             $csvData[] = [
                 $index + 1,
@@ -259,41 +386,50 @@ class CdkController extends Controller
                 $meeting->meeting_notes ?? 'N/A'
             ];
         }
-        
+
         $filename = 'daftar_pertemuan_' . date('Y-m-d_H-i-s') . '.csv';
-        
+
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
-        
-        $callback = function() use ($csvData) {
+
+        $callback = function () use ($csvData) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for UTF-8
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
             foreach ($csvData as $row) {
                 fputcsv($file, $row, ';');
             }
-            
+
             fclose($file);
         };
-        
+
         return response()->stream($callback, 200, $headers);
     }
 
     public function getMeetingDetails($id)
     {
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
         $meeting = Pertemuan::where('meeting_id', $id)
-            ->whereHas('permintaanKerjasama.kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+            ->whereHas('permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
             ->with([
                 'permintaanKerjasama.kthr.user',
+                'permintaanKerjasama.tptkb.user',
                 'permintaanKerjasama.pbphhProfile.user',
                 'kesepakatan',
                 'scheduledBy'
@@ -307,31 +443,64 @@ class CdkController extends Controller
             ], 404);
         }
 
-        // Format data untuk response
+        $partnerName = null;
+        $partnerEmail = null;
+        $partnerType = null;
+
+        if ($meeting->permintaanKerjasama->kthr) {
+            $partnerName = $meeting->permintaanKerjasama->kthr->kthr_name;
+            $partnerEmail = $meeting->permintaanKerjasama->kthr->user->email ?? null;
+            $partnerType = 'KTHR';
+        } elseif ($meeting->permintaanKerjasama->tptkb) {
+            $partnerName = $meeting->permintaanKerjasama->tptkb->tptkb_name;
+            $partnerEmail = $meeting->permintaanKerjasama->tptkb->user->email ?? null;
+            $partnerType = 'TPTKB';
+        }
+
         $meetingData = [
             'meeting_id' => $meeting->meeting_id,
-            'kthr_name' => $meeting->permintaanKerjasama->kthr->kthr_name,
-            'kthr_email' => $meeting->permintaanKerjasama->kthr->user->email,
+
+            'partner_type' => $partnerType,
+            'partner_name' => $partnerName,
+            'partner_email' => $partnerEmail,
+
             'pbphh_name' => $meeting->permintaanKerjasama->pbphhProfile->company_name,
             'pbphh_email' => $meeting->permintaanKerjasama->pbphhProfile->user->email,
+
             'scheduled_time' => $meeting->scheduled_time->format('d/m/Y H:i'),
             'scheduled_time_human' => $meeting->scheduled_time->diffForHumans(),
+
             'method' => $meeting->method,
             'location' => $meeting->location,
             'status' => $meeting->status,
             'status_badge' => $this->getStatusBadgeClass($meeting->status),
+
             'meeting_notes' => $meeting->meeting_notes,
             'meeting_summary' => $meeting->meeting_summary,
-            'scheduled_by' => $meeting->scheduledBy ? $meeting->scheduledBy->email : null,
-            'actual_start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('d/m/Y H:i') : null,
-            'actual_end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('d/m/Y H:i') : null,
+
+            'scheduled_by' => $meeting->scheduledBy
+                ? $meeting->scheduledBy->email
+                : null,
+
+            'actual_start_time' => $meeting->actual_start_time
+                ? $meeting->actual_start_time->format('d/m/Y H:i')
+                : null,
+
+            'actual_end_time' => $meeting->actual_end_time
+                ? $meeting->actual_end_time->format('d/m/Y H:i')
+                : null,
+
             'kesepakatan' => null
         ];
 
-        // Add agreement data if exists
         if ($meeting->kesepakatan) {
             $meetingData['kesepakatan'] = [
-                'agreed_price_per_m3' => number_format($meeting->kesepakatan->agreed_price_per_m3, 0, ',', '.'),
+                'agreed_price_per_m3' => number_format(
+                    $meeting->kesepakatan->agreed_price_per_m3,
+                    0,
+                    ',',
+                    '.'
+                ),
                 'payment_mechanism' => $meeting->kesepakatan->payment_mechanism,
                 'delivery_schedule' => $meeting->kesepakatan->delivery_schedule,
                 'other_notes' => $meeting->kesepakatan->other_notes,
@@ -361,7 +530,7 @@ class CdkController extends Controller
                 return 'bg-secondary';
         }
     }
-    
+
     /**
      * Menghapus kesepakatan kerjasama
      * 
@@ -371,55 +540,67 @@ class CdkController extends Controller
     public function deleteAgreement($id)
     {
         $user = Auth::user();
-        $region = $user->region;
-        
-        // Cari kesepakatan kerjasama dan pastikan berada di region yang sama
+        $region = $this->getRegionOrAbort($user);
+
         $agreement = KesepakatanKerjasama::where('agreement_id', $id)
-            ->whereHas('pertemuan.permintaanKerjasama.kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+            ->whereHas('pertemuan.permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
             ->first();
-            
+
         if (!$agreement) {
-            return redirect()->back()->with('error', 'Kesepakatan kerjasama tidak ditemukan!');
+            return redirect()->back()
+                ->with('error', 'Kesepakatan kerjasama tidak ditemukan!');
         }
-        
-        // Simpan meeting_id untuk update status pertemuan nanti
+
         $meetingId = $agreement->meeting_id;
-        
-        // Mulai transaksi database
+
         DB::beginTransaction();
-        
+
         try {
-            // Hapus file dokumen kesepakatan jika ada
+
+            // Hapus file dokumen jika ada
             if ($agreement->final_document_path) {
                 Storage::delete('public/' . $agreement->final_document_path);
             }
-            
-            // Hapus kesepakatan kerjasama
+
+            // Hapus kesepakatan
             $agreement->delete();
-            
-            // Update status pertemuan menjadi 'Berlangsung' agar bisa dibuat kesepakatan baru
+
+            // Kembalikan status pertemuan
             Pertemuan::where('meeting_id', $meetingId)->update([
                 'status' => 'Berlangsung'
             ]);
-            
-            // Update status permintaan kerjasama
-            PermintaanKerjasama::whereHas('pertemuan', function($q) use ($meetingId) {
+
+            // Kembalikan status permintaan kerjasama
+            PermintaanKerjasama::whereHas('pertemuan', function ($q) use ($meetingId) {
                 $q->where('meeting_id', $meetingId);
             })->update([
-                'status' => 'Disetujui'
-            ]);
-            
+                        'status' => 'Disetujui'
+                    ]);
+
             DB::commit();
-            return redirect()->back()->with('success', 'Kesepakatan kerjasama berhasil dihapus!');
-            
+
+            return redirect()->back()
+                ->with('success', 'Kesepakatan kerjasama berhasil dihapus!');
+
         } catch (\Exception $e) {
+
             DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Menghapus pertemuan
      * 
@@ -429,45 +610,62 @@ class CdkController extends Controller
     public function deleteMeeting($id)
     {
         $user = Auth::user();
-        $region = $user->region;
-        
-        // Cari pertemuan dan pastikan berada di region yang sama
+        $region = $this->getRegionOrAbort($user);
+
         $meeting = Pertemuan::where('meeting_id', $id)
-            ->whereHas('permintaanKerjasama.kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+            ->whereHas('permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
+            ->with('kesepakatan')
             ->first();
-            
+
         if (!$meeting) {
-            return redirect()->back()->with('error', 'Pertemuan tidak ditemukan!');
+            return redirect()->back()
+                ->with('error', 'Pertemuan tidak ditemukan!');
         }
-        
-        // Periksa apakah pertemuan memiliki kesepakatan
+
+        // Tidak boleh menghapus pertemuan yang sudah memiliki kesepakatan
         if ($meeting->kesepakatan) {
-            return redirect()->back()->with('error', 'Pertemuan tidak dapat dihapus karena memiliki kesepakatan kerjasama. Hapus kesepakatan terlebih dahulu.');
+            return redirect()->back()->with(
+                'error',
+                'Pertemuan tidak dapat dihapus karena memiliki kesepakatan kerjasama. Hapus kesepakatan terlebih dahulu.'
+            );
         }
-        
-        // Simpan request_id untuk update status permintaan kerjasama nanti
+
         $requestId = $meeting->request_id;
-        
-        // Mulai transaksi database
+
         DB::beginTransaction();
-        
+
         try {
+
             // Hapus pertemuan
             $meeting->delete();
-            
-            // Update status permintaan kerjasama menjadi 'Disetujui' agar bisa dijadwalkan lagi
-            PermintaanKerjasama::where('request_id', $requestId)->update([
-                'status' => 'Disetujui'
-            ]);
-            
+
+            // Kembalikan status permintaan kerjasama
+            PermintaanKerjasama::where('request_id', $requestId)
+                ->update([
+                    'status' => 'Disetujui'
+                ]);
+
             DB::commit();
-            return redirect()->back()->with('success', 'Pertemuan berhasil dihapus!');
-            
+
+            return redirect()->back()
+                ->with('success', 'Pertemuan berhasil dihapus!');
+
         } catch (\Exception $e) {
+
             DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
@@ -482,31 +680,58 @@ class CdkController extends Controller
         ]);
 
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
-        // Verify the request belongs to this region
         $permintaan = PermintaanKerjasama::where('request_id', $request->request_id)
-            ->whereHas('kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+
+            ->where(function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
-            ->whereIn('status', ['Disetujui', 'Menunggu Jadwal'])
+
+            ->whereIn('status', [
+                'Disetujui',
+                'Menunggu Jadwal'
+            ])
             ->firstOrFail();
 
-        // Create meeting
-        Pertemuan::create([
-            'request_id' => $request->request_id,
-            'scheduled_by_user_id' => $user->user_id,
-            'scheduled_time' => $request->scheduled_time,
-            'method' => $request->meeting_type,
-            'location' => $request->location,
-            'meeting_notes' => $request->meeting_notes,
-            'status' => 'Dijadwalkan'
-        ]);
+        DB::beginTransaction();
 
-        // Update partnership status
-        $permintaan->update(['status' => 'Dijadwalkan']);
+        try {
 
-        return redirect()->back()->with('success', 'Pertemuan berhasil dijadwalkan!');
+            Pertemuan::create([
+                'request_id' => $permintaan->request_id,
+                'scheduled_by_user_id' => $user->user_id,
+                'scheduled_time' => $request->scheduled_time,
+                'method' => $request->meeting_type,
+                'location' => $request->location,
+                'meeting_notes' => $request->meeting_notes,
+                'status' => 'Dijadwalkan'
+            ]);
+
+            $permintaan->update([
+                'status' => 'Dijadwalkan'
+            ]);
+
+            DB::commit();
+
+            return redirect()->back()
+                ->with('success', 'Pertemuan berhasil dijadwalkan!');
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function updateMeeting(Request $request, $id)
@@ -519,17 +744,25 @@ class CdkController extends Controller
         ]);
 
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
-        // Find the meeting
         $meeting = Pertemuan::where('meeting_id', $id)
-            ->whereHas('permintaanKerjasama.kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+
+            ->whereHas('permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
+
             ->where('status', 'Dijadwalkan')
             ->firstOrFail();
 
-        // Update meeting
         $meeting->update([
             'scheduled_time' => $request->scheduled_time,
             'method' => $request->meeting_type,
@@ -537,18 +770,29 @@ class CdkController extends Controller
             'meeting_notes' => $request->meeting_notes
         ]);
 
-        return redirect()->back()->with('success', 'Pertemuan berhasil diperbarui!');
+        return redirect()->back()
+            ->with('success', 'Pertemuan berhasil diperbarui!');
     }
 
     public function startMeeting($id)
     {
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
         $meeting = Pertemuan::where('meeting_id', $id)
-            ->whereHas('permintaanKerjasama.kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+
+            ->whereHas('permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
+
             ->where('status', 'Dijadwalkan')
             ->firstOrFail();
 
@@ -557,7 +801,8 @@ class CdkController extends Controller
             'actual_start_time' => now()
         ]);
 
-        return redirect()->back()->with('success', 'Pertemuan dimulai!');
+        return redirect()->back()
+            ->with('success', 'Pertemuan dimulai!');
     }
 
     public function cancelMeeting(Request $request, $id)
@@ -567,12 +812,22 @@ class CdkController extends Controller
         ]);
 
         $user = Auth::user();
-        $region = $user->region;
+        $region = $this->getRegionOrAbort($user);
 
         $meeting = Pertemuan::where('meeting_id', $id)
-            ->whereHas('permintaanKerjasama.kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+
+            ->whereHas('permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
+
             ->where('status', 'Dijadwalkan')
             ->firstOrFail();
 
@@ -581,13 +836,13 @@ class CdkController extends Controller
             'meeting_summary' => 'Pertemuan dibatalkan. Alasan: ' . $request->cancellation_reason
         ]);
 
-        // Update partnership status to indicate meeting needs rescheduling
-        $meeting->permintaanKerjasama->update(['status' => 'Menunggu Jadwal']);
+        // Kembalikan status permintaan agar bisa dijadwalkan ulang
+        $meeting->permintaanKerjasama->update([
+            'status' => 'Menunggu Jadwal'
+        ]);
 
-        // Note: Status changed to 'Menunggu Jadwal' to indicate the partnership
-        // needs to be rescheduled after meeting cancellation
-
-        return redirect()->back()->with('success', 'Pertemuan berhasil dibatalkan!');
+        return redirect()->back()
+            ->with('success', 'Pertemuan berhasil dibatalkan!');
     }
 
     public function completeMeeting(Request $request, $id)
@@ -628,9 +883,19 @@ class CdkController extends Controller
         $region = $user->region;
 
         $meeting = Pertemuan::where('meeting_id', $id)
-            ->whereHas('permintaanKerjasama.kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+
+            ->whereHas('permintaanKerjasama', function ($q) use ($region) {
+
+                $q->whereHas('kthr.user', function ($subQ) use ($region) {
+                    $subQ->where('region_id', $region->region_id);
+                })
+
+                    ->orWhereHas('tptkb.user', function ($subQ) use ($region) {
+                        $subQ->where('region_id', $region->region_id);
+                    });
+
             })
+
             ->where('status', 'Berlangsung')
             ->firstOrFail();
 
@@ -691,6 +956,16 @@ class CdkController extends Controller
             })
             ->paginate(10, ['*'], 'kthr_page');
 
+        // TPTKB di wilayah
+        $tptkbs = Tptkb::whereHas('user', function ($q) use ($region) {
+            $q->where('region_id', $region->region_id)
+                ->where('approval_status', 'Approved');
+        })
+            ->with(['user', 'materialSupplies', 'permintaanKerjasama']) // ✅ Tambahkan permintaanKerjasama agar tidak null
+            ->when($request->filled('kthr_search'), function ($q) use ($request) {
+                $q->where('kthr_name', 'like', '%' . $request->kthr_search . '%');
+            })
+            ->paginate(10, ['*'], 'kthr_page');
 
         // PBPHH di wilayah
         $pbphhs = PbphhProfile::whereHas('user', function ($q) use ($region) {
@@ -705,8 +980,13 @@ class CdkController extends Controller
 
         // Statistik kemitraan
         $partnershipStats = [
-            'total_partnerships' => PermintaanKerjasama::whereHas('kthr.user', function ($q) use ($region) {
-                $q->where('region_id', $region->region_id);
+            'total_partnerships' => PermintaanKerjasama::where(function ($query) use ($region) {
+                $query->whereHas('kthr.user', function ($subQuery) use ($region) {
+                    $subQuery->where('region_id', $region->region_id);
+                })
+                    ->orWhereHas('tptkb.user', function ($subQuery) use ($region) {
+                        $subQuery->where('region_id', $region->region_id);
+                    });
             })->count(),
             'active_partnerships' => PermintaanKerjasama::whereHas('kthr.user', function ($q) use ($region) {
                 $q->where('region_id', $region->region_id);
@@ -716,7 +996,7 @@ class CdkController extends Controller
             })->where('status', 'Selesai')->count()
         ];
 
-        return view('cdk.monitoring', compact('region', 'kthrs', 'pbphhs', 'partnershipStats'));
+        return view('cdk.monitoring', compact('region', 'kthrs', 'pbphhs', 'partnershipStats', 'tptkbs'));
     }
 
     public function reports(Request $request)
@@ -736,6 +1016,12 @@ class CdkController extends Controller
         $approvalReport = [
             'kthr_approved' => User::where('region_id', $region->region_id)
                 ->where('role', 'KTHR_PENYULUH')
+                ->where('approval_status', 'Approved')
+                ->whereNotNull('approved_at')
+                ->whereBetween('approved_at', [$dateFrom, $dateTo])
+                ->count(),
+            'tptkb_approved' => User::where('region_id', $region->region_id)
+                ->where('role', 'TPTKB')
                 ->where('approval_status', 'Approved')
                 ->whereNotNull('approved_at')
                 ->whereBetween('approved_at', [$dateFrom, $dateTo])
@@ -800,5 +1086,20 @@ class CdkController extends Controller
         $dateTo = substr($dateTo, 0, 10);
 
         return view('cdk.reports', compact('region', 'approvalReport', 'meetingReport', 'partnershipReport', 'dateFrom', 'dateTo'));
+    }
+
+    /**
+     * Get region relation from user or abort with 403 if not set.
+     *
+     * @param  mixed $user
+     * @return \App\Models\Region
+     */
+    private function getRegionOrAbort($user)
+    {
+        if (!$user || !$user->region) {
+            abort(403, 'Region tidak diatur untuk pengguna ini.');
+        }
+
+        return $user->region;
     }
 }

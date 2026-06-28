@@ -3,36 +3,36 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/cdk-dashboard.css') }}">
     <style>
-         .stats-card:hover {
-             transform: translateY(-2px);
-             transition: transform 0.2s ease-in-out;
-         }
-         
-         .card {
+        .stats-card:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .card {
             border: none;
             border-radius: 10px;
         }
-        
+
         .card-header {
             border-bottom: 1px solid #e9ecef;
             border-radius: 10px 10px 0 0 !important;
         }
-        
+
         .btn {
             border-radius: 8px;
             transition: all 0.2s ease-in-out;
         }
-        
+
         .btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        
+
         @media (max-width: 768px) {
             .stats-card {
                 margin-bottom: 1rem;
             }
-            
+
             .card-body {
                 padding: 1rem;
             }
@@ -64,10 +64,10 @@
     <div class="row g-3 mb-4">
         <div class="col-lg-2 col-md-4 col-sm-6">
             <div class="stats-card text-center h-100 shadow-sm">
-                <div class="stats-icon text-primary">
+                <div class="stats-icon text-success">
                     <i class="fas fa-user-clock"></i>
                 </div>
-                <div class="stats-number text-primary fw-bold">{{ $stats['pending_kthr_approvals'] }}</div>
+                <div class="stats-number text-success fw-bold">{{ $stats['pending_kthr_approvals'] }}</div>
                 <div class="stats-label text-muted small">KTHR Approval</div>
             </div>
         </div>
@@ -82,10 +82,10 @@
         </div>
         <div class="col-lg-2 col-md-4 col-sm-6">
             <div class="stats-card text-center h-100 shadow-sm">
-                <div class="stats-icon text-success">
+                <div class="stats-icon text-info">
                     <i class="fas fa-calendar-check"></i>
                 </div>
-                <div class="stats-number text-success fw-bold">{{ $stats['scheduled_meetings'] }}</div>
+                <div class="stats-number text-info fw-bold">{{ $stats['scheduled_meetings'] }}</div>
                 <div class="stats-label text-muted small">Pertemuan Terjadwal</div>
             </div>
         </div>
@@ -100,10 +100,10 @@
         </div>
         <div class="col-lg-2 col-md-4 col-sm-6">
             <div class="stats-card text-center h-100 shadow-sm">
-                <div class="stats-icon text-secondary">
+                <div class="stats-icon text-primary">
                     <i class="fas fa-industry"></i>
                 </div>
-                <div class="stats-number text-secondary fw-bold">{{ $stats['active_pbphhs'] }}</div>
+                <div class="stats-number text-primary fw-bold">{{ $stats['active_pbphhs'] }}</div>
                 <div class="stats-label text-muted small">PBPHH Aktif</div>
             </div>
         </div>
@@ -121,26 +121,49 @@
                 </div>
                 <div class="card-body activity-feed">
                     @forelse($urgentTasks['pending_approvals'] as $user)
+
+                        @php
+                            $isKthr = !is_null($user->kthr);
+                            $name = $isKthr ? $user->kthr->kthr_name : ($user->tptkb->tptkb_name ?? '-');
+                            $icon = $isKthr ? 'fa-tree' : 'fa-warehouse';
+                            $color = $isKthr ? 'text-success' : 'text-warning';
+                        @endphp
+
                         <div class="d-flex align-items-center mb-3 p-2 urgent-task rounded">
                             <div class="flex-shrink-0">
-                                <i class="fas fa-tree fa-2x text-warning"></i>
+                                <i class="fas {{ $icon }} fa-2x {{ $color }}"></i>
                             </div>
+
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="mb-1">
-                                    {{ $user->kthr?->kthr_name ?? '-' }}
+                                    {{ $name }}
                                 </h6>
-                                <small class="text-muted">{{ $user->email }}</small><br>
+
+                                <small class="text-muted">
+                                    {{ $user->email }}
+                                </small>
+                                <br>
+
+                                <small>
+                                    <span class="badge {{ $isKthr ? 'bg-success' : 'bg-warning' }}">
+                                        {{ $isKthr ? 'KTHR' : 'TPTKB' }}
+                                    </span>
+                                </small>
+                                <br>
+
                                 <small class="text-muted">
                                     <i class="fas fa-clock me-1"></i>
                                     {{ $user->created_at->diffForHumans() }}
                                 </small>
                             </div>
+
                             <div class="flex-shrink-0">
                                 <a href="{{ route('cdk.approvals') }}" class="btn btn-sm btn-warning">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </div>
                         </div>
+
                     @empty
                         <div class="text-center text-muted py-3">
                             <i class="fas fa-check-circle fa-3x mb-2"></i>
@@ -158,6 +181,7 @@
             </div>
         </div>
 
+        <!-- perlu fasilitasi -->
         <div class="col-lg-4">
             <div class="card h-100 shadow-sm">
                 <div class="card-header bg-light">
@@ -168,24 +192,62 @@
                 </div>
                 <div class="card-body activity-feed">
                     @forelse($urgentTasks['partnerships_to_facilitate'] as $partnership)
+
+                        @php
+                            $isKthr = !is_null($partnership->kthr);
+                            $partnerName = $isKthr
+                                ? $partnership->kthr->kthr_name
+                                : ($partnership->tptkb->tptkb_name ?? '-');
+
+                            $partnerBadge = $isKthr
+                                ? 'bg-success'
+                                : 'bg-warning';
+
+                            $partnerIcon = $isKthr
+                                ? 'fa-tree'
+                                : 'fa-warehouse';
+
+                            $partnerLabel = $isKthr
+                                ? 'KTHR'
+                                : 'TPTKB';
+                        @endphp
+
                         <div class="d-flex align-items-center mb-3 p-2 priority-medium rounded">
                             <div class="flex-shrink-0">
                                 <i class="fas fa-handshake fa-2x text-info"></i>
                             </div>
+
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-1">{{ $partnership->kthr?->kthr_name ?? '-' }}</h6>
-                                <small class="text-muted">{{ $partnership->pbphhProfile?->company_name ?? '-' }}</small>
+
+                                {{-- Partner (KTHR / TPTKB) --}}
+                                <span class="badge {{ $partnerBadge }}">
+                                    <i class="fas {{ $partnerIcon }} me-1"></i>{{ $partnerLabel }}
+                                </span>
+                                <strong>{{ $partnerName }}</strong>
+                                <br>
+                                <small class="text-muted">dengan</small>
+                                <br>
+                                {{-- PBPHH --}}
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-industry me-1"></i>PBPHH
+                                </span>
+                                <strong>{{ $partnership->pbphhProfile?->company_name ?? '-' }}</strong>
+                                <br>
 
                                 <small class="text-muted">
-                                    <i class="fas fa-cube me-1"></i>{{ $partnership->formatted_volume }}/bulan
+                                    <i class="fas fa-cube me-1"></i>
+                                    {{ number_format($partnership->monthly_volume_m3, 0, ',', '.') }} m³/bulan
                                 </small>
+
                             </div>
+
                             <div class="flex-shrink-0">
                                 <a href="{{ route('cdk.meetings') }}" class="btn btn-sm btn-info">
                                     <i class="fas fa-calendar-plus"></i>
                                 </a>
                             </div>
                         </div>
+
                     @empty
                         <div class="text-center text-muted py-3">
                             <i class="fas fa-check-circle fa-3x mb-2"></i>
@@ -213,27 +275,54 @@
                 </div>
                 <div class="card-body activity-feed">
                     @forelse($urgentTasks['upcoming_meetings'] as $meeting)
+                        @php
+                            $partner = $meeting->permintaanKerjasama->kthr
+                                ? $meeting->permintaanKerjasama->kthr
+                                : $meeting->permintaanKerjasama->tptkb;
+
+                            $isKthr = !is_null($meeting->permintaanKerjasama->kthr);
+                        @endphp
                         <div class="d-flex align-items-center mb-3 p-2 priority-low rounded">
                             <div class="flex-shrink-0">
                                 <i class="fas fa-calendar-check fa-2x text-success"></i>
                             </div>
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-1">{{ $meeting->permintaanKerjasama->kthr?->kthr_name ?? '-' }}</h6>
-                                <small
-                                    class="text-muted">{{ $meeting->permintaanKerjasama->pbphhProfile?->company_name ?? '-' }}</small>
+                                {{-- Jenis Mitra --}}
+                                @if($isKthr)
+                                    <span class="badge bg-success mb-1">
+                                        <i class="fas fa-tree me-1"></i>KTHR
+                                    </span>
+                                @else
+                                    <span class="badge bg-warning mb-1">
+                                        <i class="fas fa-warehouse me-1"></i>TPTKB
+                                    </span>
+                                @endif
+
+                                <strong>
+                                    {{ $isKthr ? $partner->kthr_name : $partner->tptkb_name }}
+                                </strong>
+                                <br>
+                                <small class="text-muted">dengan</small>
+                                <br>
+                                <span class="badge bg-primary mb-1">
+                                        <i class="fas fa-industry me-1"></i>PBPHH
+                                    </span>
+                                <strong >
+                                    {{ $meeting->permintaanKerjasama->pbphhProfile?->company_name ?? '-' }}
+                                </strong>
+                                <br>
                                 <br>
                                 <small class="text-muted">
                                     <i class="fas fa-clock me-1"></i>
                                     {{ $meeting->scheduled_time->format('d/m/Y H:i') }}
+                                    <span class="badge bg-success">{{ $meeting->scheduled_time->diffForHumans() }}</span>
                                 </small><br>
                                 <small class="text-muted">
                                     <i class="fas fa-map-marker-alt me-1"></i>
                                     {{ ucfirst($meeting->method) }}
                                 </small>
                             </div>
-                            <div class="flex-shrink-0">
-                                <span class="badge bg-success">{{ $meeting->scheduled_time->diffForHumans() }}</span>
-                            </div>
+                            
                         </div>
                     @empty
                         <div class="text-center text-muted py-3">
@@ -337,8 +426,7 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <span>Approval Pending</span>
-                            <span
-                                class="badge bg-warning">{{ $stats['pending_kthr_approvals'] }}</span>
+                            <span class="badge bg-warning">{{ $stats['pending_kthr_approvals'] }}</span>
                         </div>
                         <div class="progress mt-1" style="height: 6px;">
                             <div class="progress-bar bg-warning"
@@ -395,7 +483,7 @@
             // Add functionality to Export button
             const exportBtn = document.querySelector('.btn-outline-secondary');
             if (exportBtn) {
-                exportBtn.addEventListener('click', function() {
+                exportBtn.addEventListener('click', function () {
                     // Get data from PHP variables
                     const regionName = {!! json_encode($region->name) !!};
                     const statsData = {
@@ -405,9 +493,9 @@
                         active_kthrs: {!! json_encode($stats['active_kthrs']) !!},
                         active_pbphhs: {!! json_encode($stats['active_pbphhs']) !!}
                     };
-                    
+
                     // Convert to CSV format
-                    const csvContent = "data:text/csv;charset=utf-8," 
+                    const csvContent = "data:text/csv;charset=utf-8,"
                         + "Metric,Value\n"
                         + "Region," + regionName + "\n"
                         + "Pending KTHR Approvals," + statsData.pending_approvals + "\n"
@@ -416,7 +504,7 @@
                         + "Active KTHRs," + statsData.active_kthrs + "\n"
                         + "Active PBPHHs," + statsData.active_pbphhs + "\n"
                         + "Exported At," + new Date().toISOString();
-                    
+
                     // Create download link
                     const encodedUri = encodeURI(csvContent);
                     const link = document.createElement("a");
@@ -425,7 +513,7 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    
+
                     // Show success message
                     alert('Data dashboard berhasil diekspor!');
                 });
@@ -434,12 +522,12 @@
             // Add functionality to Refresh button
             const refreshBtn = document.querySelector('.btn-primary');
             if (refreshBtn) {
-                refreshBtn.addEventListener('click', function() {
+                refreshBtn.addEventListener('click', function () {
                     // Show loading state
                     const originalText = this.innerHTML;
                     this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
                     this.disabled = true;
-                    
+
                     // Reload the page after a short delay
                     setTimeout(() => {
                         location.reload();

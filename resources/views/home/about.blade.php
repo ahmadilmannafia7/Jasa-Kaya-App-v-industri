@@ -196,7 +196,7 @@
                 </h1>
                 <p class="lead mb-4 text-light">
                     Sistem Kemitraan Kehutanan untuk Pembangunan Berkelanjutan yang menghubungkan 
-                    Kelompok Tani Hutan Rakyat dengan Industri Pengolahan Hasil Hutan.
+                    Kelompok Tani Hutan Rakyat (KTHR), Tempat Penampungan Terdaftar Kayu Bulat (TPTKB), dan Industri Pengolahan Hasil Hutan (PBPHH).
                 </p>
                 <div class="d-flex flex-wrap gap-3">
                     <div class="d-flex align-items-center">
@@ -348,7 +348,7 @@
         
         <div class="row position-relative">
             <!-- Connection Line -->
-            <div class="d-none d-lg-block position-absolute top-50 start-0 w-100" style="height: 2px; background: linear-gradient(90deg, transparent 16.66%, #0d6efd 16.66%, #0d6efd 83.33%, transparent 83.33%); z-index: 1;"></div>
+            <!-- <div class="d-none d-lg-block position-absolute top-50 start-0 w-100" style="height: 2px; background: linear-gradient(90deg, transparent 16.66%, #0d6efd 16.66%, #0d6efd 83.33%, transparent 83.33%); z-index: 1;"></div> -->
             
             <div class="col-lg-4 mb-4 fade-in" style="animation-delay: 0.1s;">
                 <div class="text-center process-step">
@@ -356,7 +356,7 @@
                         <i class="fas fa-user-plus fa-2x"></i>
                     </div>
                     <h5 class="fw-bold mb-3">1. Daftar & Verifikasi</h5>
-                    <p class="text-muted">Daftar sebagai KTHR atau Industri dengan dokumen lengkap. Tim kami akan memverifikasi dalam 1-3 hari kerja.</p>
+                    <p class="text-muted">Daftar sebagai KTHR/TPTKB/PBPHH dengan dokumen lengkap. Tim kami akan memverifikasi dalam 1-3 hari kerja.</p>
                 </div>
             </div>
             <div class="col-lg-4 mb-4 fade-in" style="animation-delay: 0.2s;">
@@ -365,7 +365,7 @@
                         <i class="fas fa-search fa-2x"></i>
                     </div>
                     <h5 class="fw-bold mb-3">2. Cari & Ajukan</h5>
-                    <p class="text-muted">Industri dapat mencari KTHR yang sesuai kebutuhan dan mengajukan permintaan kemitraan.</p>
+                    <p class="text-muted">Industri dapat mencari KTHR/TPTKB yang sesuai kebutuhan dan mengajukan permintaan kemitraan.</p>
                 </div>
             </div>
             <div class="col-lg-4 mb-4 fade-in" style="animation-delay: 0.3s;">

@@ -27,28 +27,49 @@
             <div class="card-body">
                 <div class="row">
                     @foreach($needScheduling as $partnership)
+                    
                         <div class="col-md-6 col-lg-4 mb-3">
                             <div class="card border-warning">
                                 <div class="card-body">
-                                    <h6 class="card-title">{{ $partnership->kthr->kthr_name }}</h6>
+                                    @if($partnership->kthr)
+                                    <span class="badge bg-success mb-1">
+                                        <i class="fas fa-tree me-1"></i>KTHR
+                                    </span>
+                                @elseif($partnership->tptkb)
+                                    <span class="badge bg-warning mb-1">
+                                        <i class="fas fa-warehouse me-1"></i>TPTKB
+                                    </span>
+                                @endif
+                                    <strong class="card-title">{{ $partnership->kthr->kthr_name ?? $partnership->tptkb->tptkb_name }}</strong>
                                     <p class="card-text">
                                         <small class="text-muted">dengan</small><br>
+                                        <span class="badge bg-primary mb-1">
+                                            <i class="fas fa-industry me-1"></i>PBPHH
+                                        </span>
                                         <strong>{{ $partnership->pbphhProfile->company_name }}</strong>
                                     </p>
                                     <div class="mb-2">
                                         <small class="text-muted">
-                                            <i class="fas fa-cube me-1"></i>{{ $partnership->formatted_volume }}/bulan<br>
+                                            <i class="fas fa-cube me-1"></i>{{ number_format($partnership->monthly_volume_m3, 0, ',', '.') }} m³/bulan<br>
                                             <i class="fas fa-tree me-1"></i>{{ $partnership->wood_type }}<br>
                                             <i class="fas fa-clock me-1"></i>Disetujui
                                             {{ $partnership->updated_at->diffForHumans() }}
                                         </small>
                                     </div>
-                                    <button type="button" class="btn btn-warning btn-sm w-100"
+                                    <button
+                                        type="button"
+                                        class="btn btn-warning btn-sm w-100"
                                         data-request-id="{{ $partnership->request_id }}"
-                                        data-kthr-name="{{ $partnership->kthr->kthr_name }}"
+                                        data-partner-name="{{ $partnership->kthr?->kthr_name ?? $partnership->tptkb?->tptkb_name }}"
                                         data-pbphh-name="{{ $partnership->pbphhProfile->company_name }}"
-                                        onclick="schedulePartnership(this.dataset.requestId, this.dataset.kthrName, this.dataset.pbphhName)">
-                                        <i class="fas fa-calendar-plus me-1"></i>Jadwalkan
+                                        onclick="schedulePartnership(
+                                            this.dataset.requestId,
+                                            this.dataset.partnerName,
+                                            this.dataset.pbphhName
+                                        )">
+
+                                        <i class="fas fa-calendar-plus me-1"></i>
+                                        Jadwalkan
                                     </button>
                                 </div>
                             </div>
@@ -141,7 +162,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>KTHR</th>
+                                <th>Mitra</th>
                                 <th>PBPHH</th>
                                 <th>Jadwal</th>
                                 <th>Tipe/Lokasi</th>
@@ -151,90 +172,199 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($meetings as $meeting)
-                                <tr>
-                                    <td>
-                                        <strong>{{ $meeting->permintaanKerjasama->kthr->kthr_name }}</strong><br>
-                                        <small class="text-muted">{{ $meeting->permintaanKerjasama->kthr->user->email }}</small>
-                                    </td>
-                                    <td>
-                                        <strong>{{ $meeting->permintaanKerjasama->pbphhProfile->company_name }}</strong><br>
-                                        <small
-                                            class="text-muted">{{ $meeting->permintaanKerjasama->pbphhProfile->user->email }}</small>
-                                    </td>
-                                    <td>
-                                        <strong>{{ $meeting->scheduled_time->format('d/m/Y') }}</strong><br>
-                                        <small class="text-muted">{{ $meeting->scheduled_time->format('H:i') }}</small><br>
-                                        <em class="text-muted">{{ $meeting->scheduled_time->diffForHumans() }}</em>
-                                    </td>
-                                    <td>
-                                        <span class="badge {{ $meeting->method === 'online' ? 'bg-info' : 'bg-success' }}">
-                                            <i
-                                                class="fas {{ $meeting->method === 'online' ? 'fa-video' : 'fa-map-marker-alt' }} me-1"></i>
-                                            {{ ucfirst($meeting->method) }}
-                                        </span><br>
-                                        <small class="text-muted">{{ $meeting->location }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge {{ $meeting->status_badge }}">
-                                            {{ $meeting->status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        @if($meeting->kesepakatan)
-                                            <div class="text-success">
-                                                <i class="fas fa-check-circle me-1"></i>
-                                                <small>Rp
-                                                    {{ number_format($meeting->kesepakatan->agreed_price_per_m3, 0, ',', '.') }}/m³</small><br>
-                                                <small>{{ $meeting->kesepakatan->durasi_kontrak_bulan ? $meeting->kesepakatan->durasi_kontrak_bulan . ' bulan' : 'Tidak ditentukan' }}</small>
-                                            </div>
-                                        @else
-                                            <span class="text-muted">
-                                                <i class="fas fa-minus me-1"></i>Belum ada
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="btn-group-vertical btn-group-sm">
-                                            @if($meeting->status === 'Dijadwalkan')
-                                                <button type="button" class="btn btn-info btn-sm"
-                                                    data-meeting-id="{{ $meeting->meeting_id }}" onclick="startMeeting(this.dataset.meetingId)">
-                                                    <i class="fas fa-play me-1"></i>Mulai
-                                                </button>
-                                                <button type="button" class="btn btn-outline-warning btn-sm"
-                                                    data-meeting-id="{{ $meeting->meeting_id }}" onclick="editMeeting(this.dataset.meetingId)">
-                                                    <i class="fas fa-edit me-1"></i>Edit
-                                                </button>
-                                            @elseif($meeting->status === 'Berlangsung' && !$meeting->kesepakatan)
-                                                <button type="button" class="btn btn-success btn-sm"
-                                                    data-meeting-id="{{ $meeting->meeting_id }}" onclick="completeMeeting(this.dataset.meetingId)">
-                                                    <i class="fas fa-check me-1"></i>Selesai
-                                                </button>
-                                            @elseif($meeting->status === 'Berlangsung' && $meeting->kesepakatan)
-                                                <span class="badge bg-success">
-                                                    <i class="fas fa-check-circle me-1"></i>Selesai
-                                                </span>
-                                            @endif
-                                            <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                data-meeting-id="{{ $meeting->meeting_id }}" onclick="viewMeetingDetails(this.dataset.meetingId)">
-                                                <i class="fas fa-eye me-1"></i>Detail
-                                            </button>
-                                            @if($meeting->kesepakatan)
-                                                <button type="button" class="btn btn-outline-danger btn-sm"
-                                                    data-agreement-id="{{ $meeting->kesepakatan->agreement_id }}" onclick="deleteAgreement(this.dataset.agreementId)">
-                                                    <i class="fas fa-trash me-1"></i>Hapus Kerjasama
-                                                </button>
-                                            @else
-                                                <button type="button" class="btn btn-outline-danger btn-sm"
-                                                    data-meeting-id="{{ $meeting->meeting_id }}" onclick="deleteMeeting(this.dataset.meetingId)">
-                                                    <i class="fas fa-trash me-1"></i>Hapus Pertemuan
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
+    @foreach($meetings as $meeting)
+        @php
+            $partnership = $meeting->permintaanKerjasama;
+
+            $partnerName = $partnership->kthr
+                ? $partnership->kthr->kthr_name
+                : ($partnership->tptkb
+                    ? $partnership->tptkb->tptkb_name
+                    : '-');
+
+            $partnerEmail = $partnership->kthr
+                ? $partnership->kthr->user->email
+                : ($partnership->tptkb
+                    ? $partnership->tptkb->user->email
+                    : '-');
+
+            $partnerType = $partnership->kthr ? 'KTHR' : 'TPTKB';
+        @endphp
+
+        <tr>
+            <td>
+                <strong>{{ $partnerName }}</strong><br>
+                <span class="badge {{ $partnerType == 'KTHR' ? 'bg-success' : 'bg-warning' }}">
+                    {{ $partnerType }}
+                </span><br>
+
+
+                <small class="text-muted">
+                    {{ $partnerEmail }}
+                </small>
+            </td>
+
+            <td>
+                <strong>
+                    {{ $partnership->pbphhProfile->company_name }}
+                </strong><br>
+
+                <span class="badge bg-primary">
+                    <i class="fas fa-industry me-1"></i>PBPHH
+                    
+                </span><br>
+
+                <small class="text-muted">
+                    {{ $partnership->pbphhProfile->user->email }}
+                </small>
+            </td>
+
+            <td>
+                <strong>
+                    {{ $meeting->scheduled_time->format('d/m/Y') }}
+                </strong><br>
+
+                <small class="text-muted">
+                    {{ $meeting->scheduled_time->format('H:i') }}
+                </small><br>
+
+                <em class="text-muted">
+                    {{ $meeting->scheduled_time->diffForHumans() }}
+                </em>
+            </td>
+
+            <td>
+                <span class="badge {{ $meeting->method === 'online' ? 'bg-info' : 'bg-success' }}">
+                    <i
+                        class="fas {{ $meeting->method === 'online' ? 'fa-video' : 'fa-map-marker-alt' }} me-1">
+                    </i>
+                    {{ ucfirst($meeting->method) }}
+                </span>
+                <br>
+
+                <small class="text-muted">
+                    {{ $meeting->location }}
+                </small>
+            </td>
+
+            <td>
+                <span class="badge {{ $meeting->status_badge }}">
+                    {{ $meeting->status }}
+                </span>
+            </td>
+
+            <td>
+                @if($meeting->kesepakatan)
+                    <div class="text-success">
+                        <i class="fas fa-check-circle me-1"></i>
+
+                        <small>
+                            Rp {{ number_format($meeting->kesepakatan->agreed_price_per_m3, 0, ',', '.') }}/m³
+                        </small>
+
+                        <br>
+
+                        <small>
+                            {{ $meeting->kesepakatan->durasi_kontrak_bulan
+                                ? $meeting->kesepakatan->durasi_kontrak_bulan . ' bulan'
+                                : 'Tidak ditentukan' }}
+                        </small>
+                    </div>
+                @else
+                    <span class="text-muted">
+                        <i class="fas fa-minus me-1"></i>
+                        Belum ada
+                    </span>
+                @endif
+            </td>
+
+            <td>
+                <div class="btn-group-vertical btn-group-sm">
+
+                    @if($meeting->status === 'Dijadwalkan')
+
+                        <button
+                            type="button"
+                            class="btn btn-info btn-sm"
+                            data-meeting-id="{{ $meeting->meeting_id }}"
+                            onclick="startMeeting(this.dataset.meetingId)">
+
+                            <i class="fas fa-play me-1"></i>
+                            Mulai
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-warning btn-sm"
+                            data-meeting-id="{{ $meeting->meeting_id }}"
+                            onclick="editMeeting(this.dataset.meetingId)">
+
+                            <i class="fas fa-edit me-1"></i>
+                            Edit
+                        </button>
+
+                    @elseif($meeting->status === 'Berlangsung' && !$meeting->kesepakatan)
+
+                        <button
+                            type="button"
+                            class="btn btn-success btn-sm"
+                            data-meeting-id="{{ $meeting->meeting_id }}"
+                            onclick="completeMeeting(this.dataset.meetingId)">
+
+                            <i class="fas fa-check me-1"></i>
+                            Selesai
+                        </button>
+
+                    @elseif($meeting->status === 'Berlangsung' && $meeting->kesepakatan)
+
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Selesai
+                        </span>
+
+                    @endif
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        data-meeting-id="{{ $meeting->meeting_id }}"
+                        onclick="viewMeetingDetails(this.dataset.meetingId)">
+
+                        <i class="fas fa-eye me-1"></i>
+                        Detail
+                    </button>
+
+                    @if($meeting->kesepakatan)
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            data-agreement-id="{{ $meeting->kesepakatan->agreement_id }}"
+                            onclick="deleteAgreement(this.dataset.agreementId)">
+
+                            <i class="fas fa-trash me-1"></i>
+                            Hapus Kerjasama
+                        </button>
+
+                    @else
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            data-meeting-id="{{ $meeting->meeting_id }}"
+                            onclick="deleteMeeting(this.dataset.meetingId)">
+
+                            <i class="fas fa-trash me-1"></i>
+                            Hapus Pertemuan
+                        </button>
+
+                    @endif
+
+                </div>
+            </td>
+        </tr>
+    @endforeach
+</tbody>
                     </table>
                 </div>
 
@@ -779,35 +909,27 @@
             };
         });
         
-        function schedulePartnership(requestId, kthrName, pbphhName) {
+        function schedulePartnership(requestId, partnerName, pbphhName) {
+
             document.getElementById('schedule_request_id').value = requestId;
+
             document.getElementById('schedule_partnership_info').innerHTML =
-                `<strong>${kthrName}</strong> dengan <strong>${pbphhName}</strong>`;
-            
-            // Reset form validation
+                `<strong>${partnerName}</strong> dengan <strong>${pbphhName}</strong>`;
+
             const form = document.getElementById('scheduleForm');
+
             form.classList.remove('was-validated');
-            
-            // Clear previous values
             form.reset();
+
             document.getElementById('schedule_request_id').value = requestId;
-            
-            // Show modal with explicit configuration
+
             const modal = new bootstrap.Modal(document.getElementById('scheduleModal'), {
                 backdrop: false,
                 keyboard: true,
                 focus: true
             });
+
             modal.show();
-            
-            // Ensure modal stays visible
-            setTimeout(() => {
-                const modalElement = document.getElementById('scheduleModal');
-                modalElement.classList.add('show');
-                modalElement.style.display = 'block';
-                modalElement.setAttribute('aria-modal', 'true');
-                modalElement.removeAttribute('aria-hidden');
-            }, 100);
         }
 
         function startMeeting(meetingId) {

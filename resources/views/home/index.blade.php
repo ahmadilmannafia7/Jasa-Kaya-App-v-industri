@@ -228,6 +228,9 @@
 .legend-dot.kthr {
     background: #198652;
 }
+.legend-dot.tptkb {
+    background: #E67E22;
+}
 
 .legend-dot.pbphh {
     background: #3b82f6;
@@ -509,7 +512,7 @@
                     <br> JASA KAYA
                 </h1>
                 <p class="hero-subtitle">
-                    Platform digital yang menghubungkan Kelompok Tani Hutan Rakyat (KTHR) dengan industri pengolahan hutan atau perijinan bursa penggolahan hasil hutan (PBPHH)
+                    Platform digital yang menghubungkan Kelompok Tani Hutan Rakyat (KTHR), Tempat Penampungan Terdaftar Kayu Bulat (TPTKB), dan industri pengolahan hutan atau perijinan bursa penggolahan hasil hutan (PBPHH)
                     untuk menciptakan kemitraan yang saling menguntungkan dan berkelanjutan.
                 </p>
                 <div class="hero-badge">
@@ -572,6 +575,10 @@
                     <span>KTHR</span>
                 </div>
                 <div class="legend-item">
+                    <span class="legend-dot tptkb"></span>
+                    <span>TPTKB</span>
+                </div>
+                <div class="legend-item">
                     <span class="legend-dot pbphh"></span>
                     <span>PBPHH</span>
                 </div>
@@ -588,10 +595,11 @@
     <div class="container">
         <div class="row text-center">
             @foreach([
-                ['key' => 'total_kthr', 'label' => 'KTHR Terverifikasi', 'icon' => 'users', 'desc' => 'Kelompok tani yang telah terverifikasi'],
+                ['key' => 'total_kthr', 'label' => 'KTHR Terverifikasi', 'icon' => 'tree', 'desc' => 'Kelompok tani yang telah terverifikasi'],
+                ['key' => 'total_tptkb', 'label' => 'TPTKB Terdaftar', 'icon' => 'warehouse', 'desc' => 'Tempat penampungan kayu bulat yang terdaftar'],
                 ['key' => 'total_pbphh', 'label' => 'Industri Bergabung', 'icon' => 'industry', 'desc' => 'Perusahaan yang aktif bermitra'],
                 ['key' => 'total_partnerships', 'label' => 'Kemitraan Berhasil', 'icon' => 'handshake', 'desc' => 'Kerjasama yang telah terbentuk'],
-                ['key' => 'active_requests', 'label' => 'Permintaan Aktif', 'icon' => 'clock', 'desc' => 'Proses kemitraan dalam negosiasi']
+                //['key' => 'active_requests', 'label' => 'Permintaan Aktif', 'icon' => 'clock', 'desc' => 'Proses kemitraan dalam negosiasi']
             ] as $stat)
             <div class="col-md-6 col-lg-3 mb-4" data-aos="fade-up" data-aos-delay="{{ $loop->index * 100 }}">
                 <div class="stats-card">
@@ -619,7 +627,7 @@
         </div>
         <div class="row">
             @foreach([
-                ['step' => 'Pendaftaran', 'desc' => 'Daftar sebagai KTHR atau Industri', 'icon' => 'user-plus'],
+                ['step' => 'Pendaftaran', 'desc' => 'Daftar sebagai KTHR/TPTKB/Industri', 'icon' => 'user-plus'],
                 ['step' => 'Verifikasi', 'desc' => 'Menunggu verifikasi CDK/Provinsi', 'icon' => 'check-circle'],
                 ['step' => 'Profil Lengkap', 'desc' => 'Lengkapi data profil', 'icon' => 'id-card'],
                 ['step' => 'Pencarian Mitra', 'desc' => 'Cari dan ajukan mitra', 'icon' => 'search'],
@@ -739,6 +747,15 @@
                 popupAnchor: [1, -34],
                 shadowSize: [41, 41]
             });
+            
+            const tptkbIcon = new L.Icon({
+                iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
 
             const blueIcon = new L.Icon({
                 iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
@@ -755,7 +772,7 @@
             if (Array.isArray(lokasi)) {
                 lokasi.forEach(loc => {
                     if (loc && typeof loc === 'object' && loc.lat && loc.lng && loc.nama && loc.type) {
-                        const icon = loc.type === 'KTHR' ? kthrIcon : blueIcon;
+                        const icon = loc.type === 'KTHR' ? kthrIcon : (loc.type === 'TPTKB' ? tptkbIcon : (loc.type === 'PBPHH' ? blueIcon : kthrIcon));
                         let popupContent = '';
                         
                         if (loc.type === 'KTHR') {
@@ -776,6 +793,27 @@
                                         <div class="status-badges mt-2">
                                             ${loc.is_siap_mitra ? '<span class="badge bg-primary me-1">Siap Mitra</span>' : ''}
                                             ${loc.is_siap_tebang ? '<span class="badge bg-warning">Siap Tebang</span>' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }else if (loc.type === 'TPTKB') {
+                            popupContent = `
+                                <div class="marker-popup">
+                                    <div class="popup-header">
+                                        <h6 class="mb-1"><i class="fas fa-warehouse text-warning me-2"></i>${loc.nama}</h6>
+                                        <span class="badge bg-warning">${loc.type}</span>
+                                    </div>
+                                    <div class="popup-body">
+                                        ${loc.nama_pendamping_tptkb ? `<p class="mb-1"><i class="fas fa-user-tie me-2"></i><strong>Pendamping:</strong> ${loc.nama_pendamping_tptkb}</p>` : ''}
+                                        ${loc.phone ? `<p class="mb-1"><i class="fas fa-phone me-2"></i><strong>Telepon:</strong> ${loc.phone}</p>` : ''}
+                                        ${loc.email ? `<p class="mb-1"><i class="fas fa-envelope me-2"></i><strong>Email:</strong> ${loc.email}</p>` : ''}
+                                        ${loc.alamat ? `<p class="mb-1"><i class="fas fa-map-marker-alt me-2"></i><strong>Alamat:</strong> ${loc.alamat}</p>` : ''}
+                                        ${loc.region_name ? `<p class="mb-1"><i class="fas fa-map me-2"></i><strong>Wilayah:</strong> ${loc.region_name}</p>` : ''}
+                                        
+                                        <div class="status-badges mt-2">
+                                            ${loc.is_siap_mitra ? '<span class="badge bg-primary me-1">Siap Mitra</span>' : ''}
+                                            
                                         </div>
                                     </div>
                                 </div>

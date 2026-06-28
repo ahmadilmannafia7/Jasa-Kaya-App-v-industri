@@ -5,17 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard CDK - JASA KAYA')</title>
+    <title>@yield('title', 'Dashboard TPTKB - JASA KAYA')</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom CSS -->
-    <link href="{{ asset('css/cdk-dashboard.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/tptkb-dashboard.css') }}" rel="stylesheet">
 
     <style>
-        /* CDK Navigation Styles */
+        /* TPTKB Navigation Styles */
         .navbar-dark .navbar-nav .nav-link {
             color: rgba(255, 255, 255, 0.9);
             transition: all 0.3s ease;
@@ -29,71 +29,80 @@
         }
 
         .brand-icon {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
+            position: relative;
+            overflow: hidden;
         }
 
-        /* Ultra-aggressive modal backdrop fixes */
+        .brand-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        /* Ultra-Aggressive Modal Backdrop Fix */
         .modal-backdrop,
         .modal-backdrop.fade,
         .modal-backdrop.show,
-        .modal-backdrop.fade.show {
+        .modal-backdrop.fade.show,
+        div[class*="modal-backdrop"],
+        *[class*="modal-backdrop"] {
             display: none !important;
             opacity: 0 !important;
-            pointer-events: none !important;
             visibility: hidden !important;
+            pointer-events: none !important;
+            z-index: -9999 !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
-        /* Ensure modal elements are clickable */
-        .modal {
-            z-index: 1055 !important;
-            pointer-events: auto !important;
-        }
-
-        .modal.show {
-            z-index: 1055 !important;
-            display: block !important;
-        }
-
-        .modal-dialog {
-            z-index: 1056 !important;
-            pointer-events: auto !important;
-        }
-
-        .modal-content {
-            z-index: 1057 !important;
-            pointer-events: auto !important;
-        }
-
-        .modal-body,
+        /* Ensure modals are clickable */
+        .modal,
+        .modal-dialog,
+        .modal-content,
         .modal-header,
+        .modal-body,
         .modal-footer {
             pointer-events: auto !important;
+            z-index: 9999 !important;
         }
 
-        /* Force all modal elements to be interactive */
-        .modal * {
-            pointer-events: auto !important;
-        }
-
-        /* Ensure form controls are clickable */
-        .form-control,
-        .form-select,
-        .btn {
-            pointer-events: auto !important;
-        }
-
+        /* Force all form controls in modals to be interactive */
         .modal input,
         .modal select,
+        .modal textarea,
         .modal button,
-        .modal textarea {
+        .modal .btn,
+        .modal .form-control,
+        .modal .form-select {
             pointer-events: auto !important;
+            z-index: 10000 !important;
         }
     </style>
     @stack('styles')
@@ -105,11 +114,11 @@
         <!-- Brand -->
         <div class="sidebar-brand">
             <div class="brand-icon">
-                <i class="fas fa-seedling"></i>
+                <i class="fas fa-users"></i>
             </div>
             <div class="brand-text">
-                <span class="fw-bold">Dashboard CDK</span>
-                <small class="d-block">{{ Auth::user()->region->name }}</small>
+                <span class="fw-bold">Dashboard TPTKB</span>
+                <small class="d-block">{{ Str::limit(Auth::user()->tptkb->tptkb_name, 20) }}</small>
             </div>
         </div>
 
@@ -117,65 +126,45 @@
         <nav class="sidebar-nav">
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('cdk.dashboard') ? 'active' : '' }}"
-                        href="{{ route('cdk.dashboard') }}">
+                    <a class="nav-link {{ request()->routeIs('tptkb.dashboard') ? 'active' : '' }}"
+                        href="{{ route('tptkb.dashboard') }}">
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('cdk.approvals*') ? 'active' : '' }}"
-                        href="{{ route('cdk.approvals') }}">
-                        <i class="fas fa-user-check"></i>
-                        <span>Approval Akun</span>
+                    <a class="nav-link {{ request()->routeIs('tptkb.profile*') ? 'active' : '' }}"
+                        href="{{ route('tptkb.profile') }}">
+                        <i class="fas fa-user-edit"></i>
+                        <span>Profil TPTKB</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('tptkb.requests') ? 'active' : '' }}"
+                        href="{{ route('tptkb.requests') }}">
+                        <i class="fas fa-inbox"></i>
+                        <span>Permintaan Masuk</span>
                         @php
-                            $pendingCount = \App\Models\User::where('region_id', Auth::user()->region_id)
-                                ->whereIn('role', [
-                                    'KTHR_PENYULUH',
-                                    'TPTKB'
-                                ])
-                                ->where('approval_status', 'Pending')
-                                ->count();
+                            $pendingCount = \App\Models\PermintaanKerjasama::where('tptkb_id', Auth::user()->tptkb->tptkb_id)
+                                ->where('status', 'Terkirim')->count();
                         @endphp
                         @if($pendingCount > 0)
-                            <span class="badge bg-warning ms-auto">{{ $pendingCount }}</span>
+                            <span class="badge bg-warning text-dark ms-auto">{{ $pendingCount }}</span>
                         @endif
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('cdk.meetings*') ? 'active' : '' }}"
-                        href="{{ route('cdk.meetings') }}">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>Fasilitasi Pertemuan</span>
+                    <a class="nav-link {{ request()->routeIs('tptkb.partnerships') ? 'active' : '' }}"
+                        href="{{ route('tptkb.partnerships') }}">
+                        <i class="fas fa-handshake"></i>
+                        <span>Kemitraan</span>
                         @php
-                            $facilitationCount = \App\Models\PermintaanKerjasama::where(function ($query) {
-                                $query->whereHas('kthr.user', function ($subQuery) {
-                                    $subQuery->where('region_id', Auth::user()->region_id);
-                                })
-                                    ->orWhereHas('tptkb.user', function ($subQuery) {
-                                        $subQuery->where('region_id', Auth::user()->region_id);
-                                    });
-                            })
-                                ->where('status', 'Disetujui')
-                                ->count();
+                            $activeCount = \App\Models\PermintaanKerjasama::where('tptkb_id', Auth::user()->tptkb->tptkb_id)
+                                ->whereIn('status', ['Disetujui', 'Menunggu Jadwal', 'Dijadwalkan', 'Menunggu Tanda Tangan', 'Selesai'])->count();
                         @endphp
-                        @if($facilitationCount > 0)
-                            <span class="badge bg-info ms-auto">{{ $facilitationCount }}</span>
+                        @if($activeCount > 0)
+                            <span class="badge bg-success ms-auto">{{ $activeCount }}</span>
                         @endif
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('cdk.monitoring*') ? 'active' : '' }}"
-                        href="{{ route('cdk.monitoring') }}">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Monitoring Wilayah</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('cdk.reports*') ? 'active' : '' }}"
-                        href="{{ route('cdk.reports') }}">
-                        <i class="fas fa-file-alt"></i>
-                        <span>Laporan</span>
                     </a>
                 </li>
             </ul>
@@ -190,16 +179,21 @@
                     </div>
                     <div class="user-info">
                         <div class="user-name">{{ Str::limit(Auth::user()->email, 15) }}</div>
-                        <small class="user-role">CDK</small>
+                        <small class="user-role">TPTKB</small>
                     </div>
                     <i class="fas fa-chevron-up ms-auto"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-up">
+                    <li><a class="dropdown-item" href="{{ route('tptkb.profile') }}"><i
+                                class="fas fa-user me-2"></i>Profil</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
                     <li>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="dropdown-item text-danger">
-                                <i class="fas fa-sign-out-alt me-2"></i>Keluar
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
                             </button>
                         </form>
                     </li>
@@ -226,6 +220,13 @@
             @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if(session('info'))
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>{{ session('info') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif

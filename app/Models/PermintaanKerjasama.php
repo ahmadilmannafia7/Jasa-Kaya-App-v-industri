@@ -15,6 +15,7 @@ class PermintaanKerjasama extends Model
     protected $fillable = [
         'pbphh_id',
         'kthr_id',
+        'tptkb_id',
         'wood_type',
         'monthly_volume_m3',
         'status',
@@ -31,6 +32,11 @@ class PermintaanKerjasama extends Model
     public function kthr(): BelongsTo
     {
         return $this->belongsTo(Kthr::class, 'kthr_id');
+    }
+
+    public function tptkb(): BelongsTo
+    {
+        return $this->belongsTo(Tptkb::class, 'tptkb_id');
     }
 
     public function pertemuan(): HasOne

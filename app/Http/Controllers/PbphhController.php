@@ -9,6 +9,7 @@ use App\Models\PbphhProfile;
 use App\Models\PbphhMaterialNeed;
 use App\Models\PbphhPartnership;
 use App\Models\Kthr;
+use App\Models\Tptkb;
 use App\Models\PermintaanKerjasama;
 use App\Models\Pertemuan;
 
@@ -28,14 +29,14 @@ class PbphhController extends Controller
                 ->whereIn('status', ['Disetujui', 'Dijadwalkan'])->count(),
             'completed_partnerships' => PermintaanKerjasama::where('pbphh_id', $pbphh->pbphh_id)
                 ->where('status', 'Selesai')->count(),
-            
+
             // Statistik kemitraan industri (PBPHH-to-PBPHH)
             'industry_partnerships_sent' => PbphhPartnership::sentBy($pbphh->pbphh_id)->count(),
             'industry_partnerships_received' => PbphhPartnership::receivedBy($pbphh->pbphh_id)->count(),
             'industry_partnerships_active' => PbphhPartnership::where(function ($q) use ($pbphh) {
-                    $q->where('requester_pbphh_id', $pbphh->pbphh_id)
-                      ->orWhere('partner_pbphh_id', $pbphh->pbphh_id);
-                })
+                $q->where('requester_pbphh_id', $pbphh->pbphh_id)
+                    ->orWhere('partner_pbphh_id', $pbphh->pbphh_id);
+            })
                 ->active()
                 ->count(),
             'industry_partnerships_pending' => PbphhPartnership::receivedBy($pbphh->pbphh_id)
@@ -52,10 +53,22 @@ class PbphhController extends Controller
             ->limit(6)
             ->get();
 
+        // TPTKB yang tersedia untuk kemitraan
+        $availableTptkb = Tptkb::whereHas('user', function ($query) {
+            $query->where('approval_status', 'Approved');
+        })
+            ->where('is_siap_mitra', true)
+            ->with(['materialSupplies', 'user'])
+            ->limit(6)
+            ->get();
+
         // Permintaan terbaru
         $recentRequests = PermintaanKerjasama::where('pbphh_id', $pbphh->pbphh_id)
-            ->with(['kthr.user'])
-            ->orderBy('created_at', 'desc')
+            ->with([
+                'kthr.user',
+                'tptkb.user'
+            ])
+            ->latest()
             ->limit(5)
             ->get();
 
@@ -65,12 +78,16 @@ class PbphhController extends Controller
         })
             ->where('status', 'Dijadwalkan')
             ->where('scheduled_time', '>', now())
-            ->with(['permintaanKerjasama.kthr.user', 'scheduledBy'])
+            ->with([
+                'permintaanKerjasama.kthr.user',
+                'permintaanKerjasama.tptkb.user',
+                'scheduledBy'
+            ])
             ->orderBy('scheduled_time')
             ->limit(3)
             ->get();
 
-        return view('pbphh.dashboard', compact('pbphh', 'stats', 'availableKthr', 'recentRequests', 'upcomingMeetings'));
+        return view('pbphh.dashboard', compact('pbphh', 'stats', 'availableKthr', 'recentRequests', 'upcomingMeetings', 'availableTptkb'));
     }
 
     public function completeProfile()
@@ -231,6 +248,66 @@ class PbphhController extends Controller
         return view('pbphh.explore', compact('kthrs', 'mapData'));
     }
 
+    public function exploreTptkb(Request $request)
+    {
+        $query = Tptkb::whereHas('user', function ($q) {
+            $q->where('approval_status', 'Approved');
+        })
+            ->with(['materialSupplies', 'user']);
+
+        // Filter berdasarkan status kesiapan
+        if ($request->filled('status')) {
+            if ($request->status === 'siap_mitra') {
+                $query->where('is_siap_mitra', true);
+            }
+        }
+
+        // Filter berdasarkan supply jenis kayu
+        if ($request->filled('supply_kayu')) {
+            $query->whereHas('materialSupplies', function ($q) use ($request) {
+                $q->where('supply_kayu', 'like', '%' . $request->supply_kayu . '%');
+            });
+        }
+
+        // Filter berdasarkan tipe tanaman
+        if ($request->filled('tipe')) {
+            $query->whereHas('materialSupplies', function ($q) use ($request) {
+                $q->where('tipe', $request->tipe);
+            });
+        }
+
+        // Filter berdasarkan lokasi (radius)
+        if ($request->filled('lat') && $request->filled('lng') && $request->filled('radius')) {
+            $lat = $request->lat;
+            $lng = $request->lng;
+            $radius = $request->radius; // dalam km
+
+            $query->whereRaw("
+                (6371 * acos(cos(radians(?)) * cos(radians(coordinate_lat)) * 
+                cos(radians(coordinate_lng) - radians(?)) + sin(radians(?)) * 
+                sin(radians(coordinate_lat)))) <= ?
+            ", [$lat, $lng, $lat, $radius]);
+        }
+
+        // Search berdasarkan nama TPTKB
+        if ($request->filled('search')) {
+            $query->where('tptkb_name', 'like', '%' . $request->search . '%');
+        }
+
+        $tptkbs = $query->paginate(12);
+
+        // Data untuk map
+        $mapData = Tptkb::whereHas('user', function ($q) {
+            $q->where('approval_status', 'Approved');
+        })
+            ->where('is_siap_mitra', true)
+            ->select('tptkb_id', 'tptkb_name', 'coordinate_lat', 'coordinate_lng')
+            ->get();
+
+        return view('pbphh.explore-tptkb', compact('tptkbs', 'mapData'));
+    }
+
+
     public function requestPartnership(Request $request)
     {
         $request->validate([
@@ -265,18 +342,88 @@ class PbphhController extends Controller
         return redirect()->back()->with('success', 'Permintaan kemitraan berhasil dikirim!');
     }
 
+    public function requestPartnershipTptkb(Request $request)
+    {
+
+        $request->validate([
+            'tptkb_id' => 'required|exists:tptkbs,tptkb_id',
+            'wood_type' => 'required|string|max:100',
+            'monthly_volume_m3' => 'required|numeric|min:0.01',
+            'additional_notes' => 'nullable|string'
+        ]);
+
+        $user = Auth::user();
+        $pbphh = $user->pbphhProfile;
+
+        $existingRequest = PermintaanKerjasama::where('pbphh_id', $pbphh->pbphh_id)
+            ->where('tptkb_id', $request->tptkb_id)
+            ->whereIn('status', [
+                'Terkirim',
+                'Disetujui',
+                'Dijadwalkan'
+            ])
+            ->first();
+
+        if ($existingRequest) {
+            return back()->with(
+                'error',
+                'Anda sudah memiliki permintaan aktif dengan TPTKB ini.'
+            );
+        }
+
+        PermintaanKerjasama::create([
+            'pbphh_id' => $pbphh->pbphh_id,
+            'kthr_id' => null,
+            'tptkb_id' => $request->tptkb_id,
+            'wood_type' => $request->wood_type,
+            'monthly_volume_m3' => $request->monthly_volume_m3,
+            'additional_notes' => $request->additional_notes,
+            'status' => 'Terkirim'
+        ]);
+
+        return back()->with(
+            'success',
+            'Permintaan kemitraan berhasil dikirim!'
+        );
+    }
+
     public function partnerships()
     {
         $user = Auth::user();
         $pbphh = $user->pbphhProfile;
 
         $partnerships = PermintaanKerjasama::where('pbphh_id', $pbphh->pbphh_id)
+            ->whereNotNull('kthr_id')
             ->whereIn('status', ['Disetujui', 'Menunggu Jadwal', 'Dijadwalkan', 'Menunggu Tanda Tangan', 'Selesai'])
             ->with(['kthr.user', 'pertemuan.kesepakatan'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         return view('pbphh.partnerships', compact('partnerships'));
+    }
+
+    public function partnershipsTptkb()
+    {
+        $user = Auth::user();
+        $pbphh = $user->pbphhProfile;
+
+        $partnerships = PermintaanKerjasama::where('pbphh_id', $pbphh->pbphh_id)
+            ->whereNotNull('tptkb_id')
+            ->whereIn('status', [
+                'Disetujui',
+                'Menunggu Jadwal',
+                'Dijadwalkan',
+                'Menunggu Tanda Tangan',
+                'Selesai'
+            ])
+            ->with([
+                'tptkb.user',
+                'pertemuan.kesepakatan'
+            ])
+            ->latest()
+            ->paginate(10);
+
+        return view('pbphh.partnerships-tptkb', compact('partnerships'));
     }
 
     public function manageMaterialNeeds()
@@ -358,14 +505,25 @@ class PbphhController extends Controller
         }
 
         $kesepakatan = $partnership->pertemuan->kesepakatan;
-        $kesepakatan->update(['signed_by_pbphh_at' => now()]);
 
-        // Check if both parties have signed
-        if ($kesepakatan->signed_by_kthr_at && $kesepakatan->signed_by_pbphh_at) {
-            $partnership->update(['status' => 'Selesai']);
+        $kesepakatan->update([
+            'signed_by_pbphh_at' => now()
+        ]);
+
+        $partnerSigned =
+            !is_null($kesepakatan->signed_by_kthr_at) ||
+            !is_null($kesepakatan->signed_by_tptkb_at);
+
+        if ($partnerSigned && $kesepakatan->signed_by_pbphh_at) {
+            $partnership->update([
+                'status' => 'Selesai'
+            ]);
         }
 
-        return redirect()->back()->with('success', 'Kesepakatan berhasil ditandatangani!');
+        return redirect()->back()->with(
+            'success',
+            'Kesepakatan berhasil ditandatangani!'
+        );
     }
 
     public function getKthrDetail($id)
@@ -400,6 +558,40 @@ class PbphhController extends Controller
                         'jumlah_pohon' => $plant->jumlah_pohon,
                         'tahun_tanam' => $plant->tahun_tanam,
                         'gambar_tegakan_path' => $plant->gambar_tegakan_path
+                    ];
+                })
+            ]
+        ]);
+    }
+    public function getTptkbDetail($id)
+    {
+        $tptkb = Tptkb::with(['materialSupplies', 'user', 'region'])
+            ->whereHas('user', function ($q) {
+                $q->where('approval_status', 'Approved');
+            })
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tptkb_id' => $tptkb->tptkb_id,
+                'tptkb_name' => $tptkb->tptkb_name,
+                'nama_pendamping_tptkb' => $tptkb->nama_pendamping_tptkb,
+                'phone' => $tptkb->phone,
+                'alamat_tptkb' => $tptkb->alamat_tptkb,
+                
+                'is_siap_mitra' => $tptkb->is_siap_mitra,
+                
+                'coordinate_lat' => $tptkb->coordinate_lat,
+                'coordinate_lng' => $tptkb->coordinate_lng,
+                'region_name' => $tptkb->region ? $tptkb->region->name : null,
+                'user_email' => $tptkb->user ? $tptkb->user->email : null,
+                'material_supplies' => $tptkb->materialSupplies->map(function ($supply) {
+                    return [
+                        'supply_kayu' => $supply->supply_kayu,
+                        'tipe' => $supply->tipe,
+                        'jumlah' => $supply->jumlah,
+                        'gambar_supply_path' => $supply->gambar_supply_path
                     ];
                 })
             ]
@@ -656,7 +848,7 @@ class PbphhController extends Controller
         $partnership = \App\Models\PbphhPartnership::where('partnership_id', $id)
             ->where(function ($q) use ($pbphh) {
                 $q->where('requester_pbphh_id', $pbphh->pbphh_id)
-                  ->orWhere('partner_pbphh_id', $pbphh->pbphh_id);
+                    ->orWhere('partner_pbphh_id', $pbphh->pbphh_id);
             })
             ->firstOrFail();
 
@@ -693,7 +885,7 @@ class PbphhController extends Controller
         $partnership = \App\Models\PbphhPartnership::where('partnership_id', $id)
             ->where(function ($q) use ($pbphh) {
                 $q->where('requester_pbphh_id', $pbphh->pbphh_id)
-                  ->orWhere('partner_pbphh_id', $pbphh->pbphh_id);
+                    ->orWhere('partner_pbphh_id', $pbphh->pbphh_id);
             })
             ->whereIn('status', ['Disetujui', 'Dalam Negosiasi'])
             ->firstOrFail();

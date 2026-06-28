@@ -1,13 +1,13 @@
-/* KTHR Dashboard Specific Styles */
+/* TPTKB Dashboard Specific Styles */
 
-/* KTHR Sidebar Styles */
+/* TPTKB Sidebar Styles */
 .sidebar {
     position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
     width: 280px;
-    background: linear-gradient(135deg, #28A745 0%, #23923C 100%);
+    background: linear-gradient(135deg, #F9A825 0%, #F57C00 100%);
     color: white;
     z-index: 1000;
     display: flex;

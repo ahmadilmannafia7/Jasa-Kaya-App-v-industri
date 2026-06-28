@@ -233,45 +233,45 @@
                     const materialItem = document.createElement('div');
                     materialItem.className = 'material-item border rounded p-3 mb-3';
                     materialItem.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Bahan Baku #${materialIndex + 1}</h6>
-                        <button type="button" class="btn btn-sm btn-outline-danger remove-material">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Jenis Kebutuhan <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="materials[${materialIndex}][jenis_kayu]" required>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">Bahan Baku #${materialIndex + 1}</h6>
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-material">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Tipe <span class="text-danger">*</span></label>
-                                <select class="form-select" name="materials[${materialIndex}][tipe]" required>
-                                    <option value="">Pilih Tipe</option>
-                                    <option value="Kayu">Kayu</option>
-                                    <option value="Bukan Kayu">Bukan Kayu</option>
-                                </select>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Jenis Kebutuhan <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="materials[${materialIndex}][jenis_kayu]" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tipe <span class="text-danger">*</span></label>
+                                        <select class="form-select" name="materials[${materialIndex}][tipe]" required>
+                                            <option value="">Pilih Tipe</option>
+                                            <option value="Kayu">Kayu</option>
+                                            <option value="Bukan Kayu">Bukan Kayu</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Kebutuhan Bulanan (m³) <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" name="materials[${materialIndex}][kebutuhan_bulanan_m3]" 
+                                               step="0.01" min="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Spesifikasi Tambahan</label>
+                                        <input type="text" class="form-control" name="materials[${materialIndex}][spesifikasi_tambahan]" 
+                                               placeholder="Diameter, panjang, kualitas, dll.">
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Kebutuhan Bulanan (m³) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" name="materials[${materialIndex}][kebutuhan_bulanan_m3]" 
-                                       step="0.01" min="0.01" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Spesifikasi Tambahan</label>
-                                <input type="text" class="form-control" name="materials[${materialIndex}][spesifikasi_tambahan]" 
-                                       placeholder="Diameter, panjang, kualitas, dll.">
-                            </div>
-                        </div>
-                    </div>
-                `;
+                        `;
 
                     materialsContainer.appendChild(materialItem);
                     materialIndex++;

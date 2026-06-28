@@ -92,7 +92,7 @@
             <div class="col-12">
                 <div class="card h-100 contact-card">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-tree fa-3x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-tree fa-3x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Dinas Kehutanan Provinsi Jawa Timur</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -124,7 +124,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Pacitan</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -142,7 +142,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Madiun</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -160,7 +160,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Trenggalek</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -178,7 +178,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Malang</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -196,7 +196,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up" data-aos-delay="100">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Nganjuk</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -214,7 +214,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up" data-aos-delay="200">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Bojonegoro</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -232,7 +232,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Lumajang</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -250,7 +250,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up" data-aos-delay="100">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Jember</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -268,7 +268,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up" data-aos-delay="200">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Banyuwangi</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>
@@ -286,7 +286,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 contact-card" data-aos="fade-up">
                     <div class="card-body text-center p-4">
-                        <i class="fas fa-building fa-2x text-primary mb-3 contact-icon"></i>
+                        <i class="fas fa-building fa-2x text-success mb-3 contact-icon"></i>
                         <h5 class="fw-bold">Wilayah Sumenep</h5>
                         <div class="mb-3">
                             <i class="fas fa-map-marker-alt text-muted me-2"></i>

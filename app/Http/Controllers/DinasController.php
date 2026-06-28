@@ -603,3 +603,4 @@ class DinasController extends Controller
         ];
     }
 }
+

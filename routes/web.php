@@ -7,6 +7,8 @@ use App\Http\Controllers\KthrController;
 use App\Http\Controllers\PbphhController;
 use App\Http\Controllers\CdkController;
 use App\Http\Controllers\DinasController;
+use App\Http\Controllers\TptkbController;
+
 
 // Homepage & Public Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -46,7 +48,7 @@ Route::middleware(['web', 'auth', 'check.approval'])->group(function () {
         // Lihat & update profil
         Route::get('/profile', [KthrController::class, 'profile'])->name('profile');
         Route::put('/profile', [KthrController::class, 'updateProfile'])->name('profile.update');
-        
+
         // Manajemen Data Tanaman
         Route::post('/plants', [KthrController::class, 'storePlant'])->name('plants.store');
         Route::put('/plants/{id}', [KthrController::class, 'updatePlant'])->name('plants.update');
@@ -63,6 +65,36 @@ Route::middleware(['web', 'auth', 'check.approval'])->group(function () {
         Route::post('/partnerships/{id}/sign', [KthrController::class, 'signAgreement'])->name('partnerships.sign');
     });
 
+    // TPTKB Dashboard
+    Route::prefix('tptkb')->name('tptkb.')->group(function () {
+
+        // Dashboard TPTKB
+        Route::get('/dashboard', [TptkbController::class, 'dashboard'])->name('dashboard');
+
+        // Lengkapi profil TPTKB
+        Route::get('/profile/complete', [TptkbController::class, 'completeProfile'])->name('profile.complete');
+        Route::post('/profile/complete', [TptkbController::class, 'storeProfile'])->name('profile.complete.submit');
+
+        // Lihat & update profil
+        Route::get('/profile', [TptkbController::class, 'profile'])->name('profile');
+        Route::put('/profile', [TptkbController::class, 'updateProfile'])->name('profile.update');
+
+        // Manajemen Data Tanaman
+        Route::post('/supplies', [TptkbController::class, 'storeSupply'])->name('supplies.store');
+        Route::put('/supplies/{id}', [TptkbController::class, 'updateSupply'])->name('supplies.update');
+        Route::delete('/supplies/{id}', [TptkbController::class, 'deleteSupply'])->name('supplies.delete');
+
+        // Permintaan kemitraan
+        Route::get('/requests', [TptkbController::class, 'requests'])->name('requests');
+        Route::post('/requests/{id}/respond', [TptkbController::class, 'respondToRequest'])->name('requests.respond');
+        Route::post('/requests/{id}/cancel', [TptkbController::class, 'cancelRequest'])->name('requests.cancel');
+        Route::get('/company-profile/{pbphhId}', [TptkbController::class, 'getCompanyProfile'])->name('company.profile');
+
+        // Kemitraan aktif & riwayat
+        Route::get('/partnerships', [TptkbController::class, 'partnerships'])->name('partnerships');
+        Route::post('/partnerships/{id}/sign', [TptkbController::class, 'signAgreement'])->name('partnerships.sign');
+    });
+
     // PBPHH/Industry Dashboard
     Route::prefix('pbphh')->name('pbphh.')->group(function () {
         Route::get('/dashboard', [PbphhController::class, 'dashboard'])->name('dashboard');
@@ -77,9 +109,13 @@ Route::middleware(['web', 'auth', 'check.approval'])->group(function () {
 
         // Eksplorasi dan Kemitraan
         Route::get('/explore', [PbphhController::class, 'exploreKthr'])->name('explore');
+        Route::get('/explore-tptkb', [PbphhController::class, 'exploreTptkb'])->name('explore.tptkb');
         Route::get('/kthr/{id}/detail', [PbphhController::class, 'getKthrDetail'])->name('kthr.detail');
+        Route::get('/tptkb/{id}/detail', [PbphhController::class, 'getTptkbDetail'])->name('tptkb.detail');
         Route::post('/request-partnership', [PbphhController::class, 'requestPartnership'])->name('request.partnership');
+        Route::post('/request-partnership-tptkb', [PbphhController::class, 'requestPartnershipTptkb'])->name('request.partnership.tptkb');
         Route::get('/partnerships', [PbphhController::class, 'partnerships'])->name('partnerships');
+        Route::get('/partnerships-tptkb', [PbphhController::class, 'partnershipsTptkb'])->name('partnerships.tptkb');
         Route::post('/partnerships/{id}/sign', [PbphhController::class, 'signAgreement'])->name('partnerships.sign');
 
         // Kebutuhan Material
@@ -108,14 +144,14 @@ Route::middleware(['web', 'auth', 'check.approval'])->group(function () {
         Route::post('/approvals/{id}/approve', [CdkController::class, 'approve'])->name('approvals.approve');
         Route::post('/approvals/{id}/reject', [CdkController::class, 'reject'])->name('approvals.reject');
         Route::get('/meetings', [CdkController::class, 'meetings'])->name('meetings');
-    Route::get('/meetings/{id}/details', [CdkController::class, 'getMeetingDetails'])->name('meetings.details');
-    Route::post('/meetings/schedule', [CdkController::class, 'scheduleMeeting'])->name('meetings.schedule');
-    Route::put('/meetings/{id}/update', [CdkController::class, 'updateMeeting'])->name('meetings.update');
-    Route::post('/meetings/{id}/start', [CdkController::class, 'startMeeting'])->name('meetings.start');
-    Route::post('/meetings/{id}/cancel', [CdkController::class, 'cancelMeeting'])->name('meetings.cancel');
-    Route::post('/meetings/{id}/complete', [CdkController::class, 'completeMeeting'])->name('meetings.complete');
-    Route::delete('/meetings/{id}', [CdkController::class, 'deleteMeeting'])->name('meetings.delete');
-    Route::delete('/agreements/{id}', [CdkController::class, 'deleteAgreement'])->name('agreements.delete');
+        Route::get('/meetings/{id}/details', [CdkController::class, 'getMeetingDetails'])->name('meetings.details');
+        Route::post('/meetings/schedule', [CdkController::class, 'scheduleMeeting'])->name('meetings.schedule');
+        Route::put('/meetings/{id}/update', [CdkController::class, 'updateMeeting'])->name('meetings.update');
+        Route::post('/meetings/{id}/start', [CdkController::class, 'startMeeting'])->name('meetings.start');
+        Route::post('/meetings/{id}/cancel', [CdkController::class, 'cancelMeeting'])->name('meetings.cancel');
+        Route::post('/meetings/{id}/complete', [CdkController::class, 'completeMeeting'])->name('meetings.complete');
+        Route::delete('/meetings/{id}', [CdkController::class, 'deleteMeeting'])->name('meetings.delete');
+        Route::delete('/agreements/{id}', [CdkController::class, 'deleteAgreement'])->name('agreements.delete');
         Route::get('/monitoring', [CdkController::class, 'monitoring'])->name('monitoring');
         Route::get('/reports', [CdkController::class, 'reports'])->name('reports');
     });

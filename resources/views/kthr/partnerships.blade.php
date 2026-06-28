@@ -26,7 +26,7 @@
         @if($partnerships->count() > 0)
             <div class="row">
                 @foreach($partnerships as $partnership)
-                    <div class="col-lg-6 mb-4">
+                    <div class="col-lg-12 mb-4">
                         <div class="card partnership-card mb-4 shadow-sm">
                             <div class="card-body p-4">
                                 <div class="partnership-status">

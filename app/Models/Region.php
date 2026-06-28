@@ -23,6 +23,10 @@ class Region extends Model {
         return $this->hasMany(Kthr::class, 'region_id', 'region_id');
     }
 
+    public function tptkbs(): HasMany {
+        return $this->hasMany(Tptkb::class, 'region_id', 'region_id');
+    }
+
     
     public function pbphhs(): HasMany {
         return $this->hasMany(User::class, 'region_id', 'region_id')

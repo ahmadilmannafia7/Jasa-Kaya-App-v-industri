@@ -19,7 +19,9 @@ class KesepakatanKerjasama extends Model
         'durasi_kontrak_bulan',
         'final_document_path', 
         'signed_by_kthr_at', 
-        'signed_by_pbphh_at'
+        'signed_by_pbphh_at',
+        'signed_by_tptkb_at',
+
     ];
 
     public function pertemuan(): BelongsTo

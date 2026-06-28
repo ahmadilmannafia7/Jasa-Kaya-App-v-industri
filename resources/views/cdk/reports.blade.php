@@ -71,8 +71,8 @@
                         <small>KTHR Disetujui</small>
                     </div>
                     <div class="col-6">
-                        <h3 class="text-info">{{ $approvalReport['pbphh_approved'] }}</h3>
-                        <small>PBPHH Disetujui</small>
+                        <h3 class="text-warning">{{ $approvalReport['tptkb_approved'] }}</h3>
+                        <small>TPTKB Disetujui</small>
                     </div>
                 </div>
                 <hr>
@@ -122,7 +122,7 @@
             </div>
             <div class="card-body">
                 @php
-                    $totalApprovals = $approvalReport['kthr_approved'] + $approvalReport['pbphh_approved'];
+                    $totalApprovals = $approvalReport['kthr_approved'] + $approvalReport['tptkb_approved'];
                     $totalRejected = $approvalReport['total_rejected'];
                     $approvalRate = $totalApprovals + $totalRejected > 0 
                         ? round(($totalApprovals / ($totalApprovals + $totalRejected)) * 100) 
@@ -197,8 +197,8 @@
                         <span class="badge bg-success">{{ $approvalReport['kthr_approved'] }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        PBPHH Disetujui
-                        <span class="badge bg-info">{{ $approvalReport['pbphh_approved'] }}</span>
+                        TPTKB Disetujui
+                        <span class="badge bg-warning">{{ $approvalReport['tptkb_approved'] }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         Pertemuan Selesai

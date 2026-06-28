@@ -73,6 +73,12 @@ class Pertemuan extends Model {
         });
     }
 
+    public function scopeInRegionTptkb($query, $regionId) {
+        return $query->whereHas('permintaanKerjasama.tptkb.user', function ($q) use ($regionId) {
+            $q->where('region_id', $regionId);
+        });
+    }
+
     // Scope untuk pertemuan yang akan datang
     public function scopeUpcoming($query) {
         return $query->where('status', 'Dijadwalkan')
