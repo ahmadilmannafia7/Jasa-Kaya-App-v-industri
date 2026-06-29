@@ -218,7 +218,7 @@ class AuthController extends Controller
 
         Tptkb::create([
             'registered_by_user_id' => $user->user_id,
-            // 'region_id' => $user->region_id,
+            'region_id' => $user->region_id,
             'tptkb_name' => $request->tptkb_name,
             'ketua_ktp_path' => $ktp_tptkbPath,
             'sk_tptkb_path' => $sk_tptkbPath
