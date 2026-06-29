@@ -197,6 +197,10 @@ class AuthController extends Controller
         $ktpPath = $request->file('ketua_ktp')->store('documents/ktp', 'public');
         $skPath = $request->file('sk_register')->store('documents/sk', 'public');
 
+        // Copy ke public/storage
+        $this->copyToPublicStorage($ktpPath);
+        $this->copyToPublicStorage($skPath);
+
         Kthr::create([
             'registered_by_user_id' => $user->user_id,
             'region_id' => $user->region_id,
@@ -216,6 +220,10 @@ class AuthController extends Controller
 
         $ktp_tptkbPath = $request->file('ketua_ktp_tptkb')->store('documents/ktp_tptkb', 'public');
         $sk_tptkbPath = $request->file('sk_tptkb')->store('documents/sk_tptkb', 'public');
+
+        // Copy ke public/storage
+        $this->copyToPublicStorage($ktp_tptkbPath);
+        $this->copyToPublicStorage($sk_tptkbPath);
 
         Tptkb::create([
             'registered_by_user_id' => $user->user_id,
@@ -271,19 +279,50 @@ class AuthController extends Controller
     {
         $kthr = $user->kthr;
 
-        // Delete old documents if they exist
+        // Hapus file lama dari storage/app/public dan public/storage
         if ($kthr->ketua_ktp_path) {
             Storage::disk('public')->delete($kthr->ketua_ktp_path);
-        }
-        if ($kthr->sk_register_path) {
-            Storage::disk('public')->delete($kthr->sk_register_path);
+
+            $publicKtp = public_path('storage/' . $kthr->ketua_ktp_path);
+            if (file_exists($publicKtp)) {
+                unlink($publicKtp);
+            }
         }
 
-        // Upload new documents
+        if ($kthr->sk_register_path) {
+            Storage::disk('public')->delete($kthr->sk_register_path);
+
+            $publicSk = public_path('storage/' . $kthr->sk_register_path);
+            if (file_exists($publicSk)) {
+                unlink($publicSk);
+            }
+        }
+
+        // Upload file baru
         $ktpPath = $request->file('ketua_ktp')->store('documents/ktp', 'public');
         $skPath = $request->file('sk_register')->store('documents/sk', 'public');
 
-        // Update KTHR record
+        // Copy KTP ke public/storage
+        $ktpSource = storage_path('app/public/' . $ktpPath);
+        $ktpDestination = public_path('storage/' . $ktpPath);
+
+        if (!file_exists(dirname($ktpDestination))) {
+            mkdir(dirname($ktpDestination), 0755, true);
+        }
+
+        copy($ktpSource, $ktpDestination);
+
+        // Copy SK ke public/storage
+        $skSource = storage_path('app/public/' . $skPath);
+        $skDestination = public_path('storage/' . $skPath);
+
+        if (!file_exists(dirname($skDestination))) {
+            mkdir(dirname($skDestination), 0755, true);
+        }
+
+        copy($skSource, $skDestination);
+
+        // Update database
         $kthr->update([
             'ketua_ktp_path' => $ktpPath,
             'sk_register_path' => $skPath
@@ -294,22 +333,53 @@ class AuthController extends Controller
     {
         $tptkb = $user->tptkb;
 
-        // Delete old documents if they exist
+        // Hapus file lama dari storage/app/public dan public/storage
         if ($tptkb->ketua_ktp_path) {
             Storage::disk('public')->delete($tptkb->ketua_ktp_path);
+
+            $publicKtp = public_path('storage/' . $tptkb->ketua_ktp_path);
+            if (file_exists($publicKtp)) {
+                unlink($publicKtp);
+            }
         }
+
         if ($tptkb->sk_tptkb_path) {
             Storage::disk('public')->delete($tptkb->sk_tptkb_path);
+
+            $publicSk = public_path('storage/' . $tptkb->sk_tptkb_path);
+            if (file_exists($publicSk)) {
+                unlink($publicSk);
+            }
         }
 
-        // Upload new documents
-        $ktp_tptkbPath = $request->file('ketua_ktp_tptkb')->store('documents/ktp_tptkb', 'public');
-        $sk_tptkbPath = $request->file('sk_tptkb')->store('documents/sk_tptkb', 'public');
+        // Upload file baru
+        $ktpPath = $request->file('ketua_ktp_tptkb')->store('documents/ktp_tptkb', 'public');
+        $skPath = $request->file('sk_tptkb')->store('documents/sk_tptkb', 'public');
 
-        // Update TPTKB record
+        // Copy KTP ke public/storage
+        $ktpSource = storage_path('app/public/' . $ktpPath);
+        $ktpDestination = public_path('storage/' . $ktpPath);
+
+        if (!file_exists(dirname($ktpDestination))) {
+            mkdir(dirname($ktpDestination), 0755, true);
+        }
+
+        copy($ktpSource, $ktpDestination);
+
+        // Copy SK ke public/storage
+        $skSource = storage_path('app/public/' . $skPath);
+        $skDestination = public_path('storage/' . $skPath);
+
+        if (!file_exists(dirname($skDestination))) {
+            mkdir(dirname($skDestination), 0755, true);
+        }
+
+        copy($skSource, $skDestination);
+
+        // Update database
         $tptkb->update([
-            'ketua_ktp_path' => $ktp_tptkbPath,
-            'sk_tptkb_path' => $sk_tptkbPath
+            'ketua_ktp_path' => $ktpPath,
+            'sk_tptkb_path' => $skPath
         ]);
     }
 
@@ -323,34 +393,64 @@ class AuthController extends Controller
             'old_sk_path' => $pbphh->sk_pbphh_path
         ]);
 
-        // Delete old documents if they exist
+        // Hapus file lama dari storage/app/public dan public/storage
         if ($pbphh->nib_path) {
-            $deleted = Storage::disk('public')->delete($pbphh->nib_path);
-            Log::info('Deleted old NIB file', ['path' => $pbphh->nib_path, 'success' => $deleted]);
-        }
-        if ($pbphh->sk_pbphh_path) {
-            $deleted = Storage::disk('public')->delete($pbphh->sk_pbphh_path);
-            Log::info('Deleted old SK PBPHH file', ['path' => $pbphh->sk_pbphh_path, 'success' => $deleted]);
+            Storage::disk('public')->delete($pbphh->nib_path);
+
+            $publicNib = public_path('storage/' . $pbphh->nib_path);
+            if (file_exists($publicNib)) {
+                unlink($publicNib);
+            }
+
+            Log::info('Deleted old NIB file', ['path' => $pbphh->nib_path]);
         }
 
-        // Upload new documents
+        if ($pbphh->sk_pbphh_path) {
+            Storage::disk('public')->delete($pbphh->sk_pbphh_path);
+
+            $publicSk = public_path('storage/' . $pbphh->sk_pbphh_path);
+            if (file_exists($publicSk)) {
+                unlink($publicSk);
+            }
+
+            Log::info('Deleted old SK PBPHH file', ['path' => $pbphh->sk_pbphh_path]);
+        }
+
+        // Upload file baru ke storage/app/public
         $nibPath = $request->file('nib')->store('documents/nib', 'public');
         $skPath = $request->file('sk_pbphh')->store('documents/sk_pbphh', 'public');
+
+        // Copy ke public/storage
+        $nibSource = storage_path('app/public/' . $nibPath);
+        $nibDestination = public_path('storage/' . $nibPath);
+
+        if (!file_exists(dirname($nibDestination))) {
+            mkdir(dirname($nibDestination), 0755, true);
+        }
+
+        copy($nibSource, $nibDestination);
+
+        $skSource = storage_path('app/public/' . $skPath);
+        $skDestination = public_path('storage/' . $skPath);
+
+        if (!file_exists(dirname($skDestination))) {
+            mkdir(dirname($skDestination), 0755, true);
+        }
+
+        copy($skSource, $skDestination);
 
         Log::info('Uploaded new documents', [
             'new_nib_path' => $nibPath,
             'new_sk_path' => $skPath
         ]);
 
-        // Update PBPHH record
-        $updateResult = $pbphh->update([
+        $pbphh->update([
             'nib_path' => $nibPath,
             'sk_pbphh_path' => $skPath
         ]);
 
-        Log::info('PBPHH profile update result', [
-            'update_success' => $updateResult,
-            'profile_id' => $pbphh->id
+        Log::info('PBPHH profile updated', [
+            'profile_id' => $pbphh->pbphh_id
         ]);
     }
 
