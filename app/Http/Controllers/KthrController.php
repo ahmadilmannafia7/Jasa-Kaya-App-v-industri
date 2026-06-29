@@ -12,6 +12,8 @@ use App\Models\Pertemuan;
 use App\Models\KesepakatanKerjasama;
 use App\Models\User;
 use App\Models\PbphhProfile;
+use Illuminate\Support\Facades\File;
+
 
 class KthrController extends Controller
 {
@@ -22,7 +24,7 @@ class KthrController extends Controller
 
         \Illuminate\Support\Facades\Log::info('User and KTHR data', [
             'user_id' => $user->id,
-            'has_kthr' => (bool)$kthr,
+            'has_kthr' => (bool) $kthr,
             'kthr_id' => $kthr ? $kthr->kthr_id : null
         ]);
 
@@ -71,7 +73,7 @@ class KthrController extends Controller
                 'url' => $request->url(),
                 'is_ajax' => $request->ajax()
             ]);
-            
+
             \Illuminate\Support\Facades\Log::info('Request Headers', [
                 'headers' => $request->headers->all()
             ]);
@@ -96,81 +98,81 @@ class KthrController extends Controller
 
             \Illuminate\Support\Facades\Log::info('Starting validation');
             $request->validate([
-            'nama_pendamping' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
-            'alamat_sekretariat' => 'required|string',
-            'coordinate_lat' => 'required|numeric|between:-90,90',
-            'coordinate_lng' => 'required|numeric|between:-180,180',
-            'luas_areal_ha' => 'required|numeric|min:0',
-            'jumlah_anggota' => 'required|integer|min:1',
-            'jumlah_pertemuan_tahunan' => 'required|integer|min:0',
-            'shp_file' => 'nullable|file|mimes:zip,shp|max:10240',
-            'plants.*.jenis_tanaman' => 'required|string|max:100',
-            'plants.*.tipe' => 'required|in:Kayu,Bukan Kayu',
-            'plants.*.jumlah_pohon' => 'required|integer|min:1',
-            'plants.*.tahun_tanam' => 'required|integer|min:1900|max:' . date('Y'),
-            'plants.*.gambar_tegakan' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
-        ]);
+                'nama_pendamping' => 'required|string|max:255',
+                'phone' => 'nullable|string|max:20',
+                'alamat_sekretariat' => 'required|string',
+                'coordinate_lat' => 'required|numeric|between:-90,90',
+                'coordinate_lng' => 'required|numeric|between:-180,180',
+                'luas_areal_ha' => 'required|numeric|min:0',
+                'jumlah_anggota' => 'required|integer|min:1',
+                'jumlah_pertemuan_tahunan' => 'required|integer|min:0',
+                'shp_file' => 'nullable|file|mimes:zip,shp|max:10240',
+                'plants.*.jenis_tanaman' => 'required|string|max:100',
+                'plants.*.tipe' => 'required|in:Kayu,Bukan Kayu',
+                'plants.*.jumlah_pohon' => 'required|integer|min:1',
+                'plants.*.tahun_tanam' => 'required|integer|min:1900|max:' . date('Y'),
+                'plants.*.gambar_tegakan' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+            ]);
 
-        $user = Auth::user();
-        $kthr = $user->kthr;
+            $user = Auth::user();
+            $kthr = $user->kthr;
 
-        $updateData = $request->only([
-            'nama_pendamping',
-            'phone',
-            'alamat_sekretariat',
-            'coordinate_lat',
-            'coordinate_lng',
-            'luas_areal_ha',
-            'jumlah_anggota',
-            'jumlah_pertemuan_tahunan'
-        ]);
+            $updateData = $request->only([
+                'nama_pendamping',
+                'phone',
+                'alamat_sekretariat',
+                'coordinate_lat',
+                'coordinate_lng',
+                'luas_areal_ha',
+                'jumlah_anggota',
+                'jumlah_pertemuan_tahunan'
+            ]);
 
-        if ($request->hasFile('shp_file')) {
-            $updateData['shp_file_path'] = $request->file('shp_file')->store('shp_files', 'public');
-        }
-
-        if (!$kthr) {
-            $updateData['registered_by_user_id'] = $user->user_id;
-            $updateData['region_id'] = $user->region_id;
-            $updateData['kthr_name'] = 'Default Name';
-            $updateData['ketua_ktp_path'] = 'documents/ktp/default.pdf';
-            $updateData['sk_register_path'] = 'documents/sk/default.pdf';
-
-            $kthr = Kthr::create($updateData);
-        } else {
-            $kthr->update($updateData);
-        }
-
-        $kthr->plantSpecies()->delete();
-
-        if ($request->has('plants')) {
-            foreach ($request->plants as $plantData) {
-                $plantSpecies = new KthrPlantSpecies([
-                    'kthr_id' => $kthr->kthr_id,
-                    'jenis_tanaman' => $plantData['jenis_tanaman'],
-                    'tipe' => $plantData['tipe'],
-                    'jumlah_pohon' => $plantData['jumlah_pohon'],
-                    'tahun_tanam' => $plantData['tahun_tanam'],
-                ]);
-
-                if (isset($plantData['gambar_tegakan']) && $plantData['gambar_tegakan'] instanceof \Illuminate\Http\UploadedFile) {
-                    $plantSpecies->gambar_tegakan_path = $plantData['gambar_tegakan']->store('plant_images', 'public');
-                }
-
-                $plantSpecies->save();
+            if ($request->hasFile('shp_file')) {
+                $updateData['shp_file_path'] = $request->file('shp_file')->store('shp_files', 'public');
             }
-        }
 
-        $kthr->update([
-            'is_siap_mitra' => true,
-            'is_siap_tebang' => false
-        ]);
+            if (!$kthr) {
+                $updateData['registered_by_user_id'] = $user->user_id;
+                $updateData['region_id'] = $user->region_id;
+                $updateData['kthr_name'] = 'Default Name';
+                $updateData['ketua_ktp_path'] = 'documents/ktp/default.pdf';
+                $updateData['sk_register_path'] = 'documents/sk/default.pdf';
 
-        \Illuminate\Support\Facades\Log::info('KTHR profile stored successfully', [
-            'kthr_id' => $kthr->kthr_id,
-            'plant_species_count' => $kthr->plantSpecies()->count()
-        ]);
+                $kthr = Kthr::create($updateData);
+            } else {
+                $kthr->update($updateData);
+            }
+
+            $kthr->plantSpecies()->delete();
+
+            if ($request->has('plants')) {
+                foreach ($request->plants as $plantData) {
+                    $plantSpecies = new KthrPlantSpecies([
+                        'kthr_id' => $kthr->kthr_id,
+                        'jenis_tanaman' => $plantData['jenis_tanaman'],
+                        'tipe' => $plantData['tipe'],
+                        'jumlah_pohon' => $plantData['jumlah_pohon'],
+                        'tahun_tanam' => $plantData['tahun_tanam'],
+                    ]);
+
+                    if (isset($plantData['gambar_tegakan']) && $plantData['gambar_tegakan'] instanceof \Illuminate\Http\UploadedFile) {
+                        $plantSpecies->gambar_tegakan_path = $plantData['gambar_tegakan']->store('plant_images', 'public');
+                    }
+
+                    $plantSpecies->save();
+                }
+            }
+
+            $kthr->update([
+                'is_siap_mitra' => true,
+                'is_siap_tebang' => false
+            ]);
+
+            \Illuminate\Support\Facades\Log::info('KTHR profile stored successfully', [
+                'kthr_id' => $kthr->kthr_id,
+                'plant_species_count' => $kthr->plantSpecies()->count()
+            ]);
 
             \Illuminate\Support\Facades\Log::info('Redirecting to dashboard');
             return redirect('/kthr/dashboard')->with('success', 'Profil KTHR berhasil disimpan.');
@@ -180,7 +182,7 @@ class KthrController extends Controller
                 'errors' => $e->errors(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return redirect()->back()
                 ->withErrors($e->errors())
                 ->withInput()
@@ -190,7 +192,7 @@ class KthrController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Terjadi kesalahan saat menyimpan profil. Silakan coba lagi.');
@@ -266,29 +268,29 @@ class KthrController extends Controller
 
         return redirect()->back()->with('success', $message);
     }
-    
+
     public function cancelRequest($id)
     {
         $permintaan = PermintaanKerjasama::where('request_id', $id)
             ->where('kthr_id', Auth::user()->kthr->kthr_id)
             ->whereIn('status', ['Disetujui', 'Menunggu Jadwal'])
             ->firstOrFail();
-            
+
         // Periksa apakah permintaan sudah memiliki pertemuan yang dijadwalkan
         if ($permintaan->pertemuan && $permintaan->pertemuan->status !== 'Dibatalkan') {
             return redirect()->back()->with('error', 'Tidak dapat membatalkan permintaan yang sudah dijadwalkan pertemuan. Hubungi CDK untuk membatalkan pertemuan terlebih dahulu.');
         }
-        
+
         // Periksa apakah permintaan sudah memiliki kesepakatan
         if ($permintaan->kesepakatanKerjasama) {
             return redirect()->back()->with('error', 'Tidak dapat membatalkan permintaan yang sudah memiliki kesepakatan kerjasama.');
         }
-        
+
         $permintaan->update([
             'status' => 'Dibatalkan',
             'rejection_reason' => 'Dibatalkan oleh KTHR'
         ]);
-        
+
         return redirect()->back()->with('success', 'Permintaan kerjasama berhasil dibatalkan!');
     }
 
@@ -358,7 +360,23 @@ class KthrController extends Controller
             ];
 
             if ($request->hasFile('gambar_tegakan')) {
-                $plantData['gambar_tegakan_path'] = $request->file('gambar_tegakan')->store('plant_images', 'public');
+
+                // Simpan ke storage/app/public/plant_images
+                $path = $request->file('gambar_tegakan')->store('plant_images', 'public');
+
+                // Simpan path ke database
+                $plantData['gambar_tegakan_path'] = $path;
+
+                // Pastikan folder public/storage/plant_images ada
+                if (!File::exists(public_path('storage/plant_images'))) {
+                    File::makeDirectory(public_path('storage/plant_images'), 0755, true);
+                }
+
+                // Copy file dari storage ke public/storage
+                File::copy(
+                    storage_path('app/public/' . $path),
+                    public_path('storage/' . $path)
+                );
             }
 
             $plant = KthrPlantSpecies::create($plantData);
@@ -380,7 +398,7 @@ class KthrController extends Controller
                     'errors' => $e->errors()
                 ], 422);
             }
-            
+
             return redirect()->back()
                 ->withErrors($e->errors())
                 ->withInput()
@@ -390,14 +408,14 @@ class KthrController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Terjadi kesalahan saat menyimpan data tanaman.'
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Terjadi kesalahan saat menyimpan data tanaman.');
@@ -453,14 +471,14 @@ class KthrController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Terjadi kesalahan saat memperbarui data tanaman.'
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Terjadi kesalahan saat memperbarui data tanaman.');
@@ -497,14 +515,14 @@ class KthrController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Terjadi kesalahan saat menghapus data tanaman.'
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->with('error', 'Terjadi kesalahan saat menghapus data tanaman.');
         }
