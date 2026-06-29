@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use App\Models\User;
 use App\Models\Kthr;
 use App\Models\Tptkb;
@@ -235,8 +236,13 @@ class AuthController extends Controller
             'sk_pbphh' => 'required|file|mimes:pdf|max:2048'
         ]);
 
+        // Simpan ke storage/app/public
         $nibPath = $request->file('nib')->store('documents/nib', 'public');
         $skPath = $request->file('sk_pbphh')->store('documents/sk_pbphh', 'public');
+
+        // Copy ke public/storage
+        $this->copyToPublicStorage($nibPath);
+        $this->copyToPublicStorage($skPath);
 
         PbphhProfile::create([
             'user_id' => $user->user_id,
@@ -244,6 +250,21 @@ class AuthController extends Controller
             'nib_path' => $nibPath,
             'sk_pbphh_path' => $skPath
         ]);
+    }
+
+    /**
+     * Copy file dari storage/app/public ke public/storage
+     */
+    private function copyToPublicStorage($path)
+    {
+        $source = storage_path('app/public/' . $path);
+        $destination = public_path('storage/' . $path);
+
+        // Buat folder tujuan jika belum ada
+        File::ensureDirectoryExists(dirname($destination));
+
+        // Copy file
+        File::copy($source, $destination);
     }
 
     private function updateKthrDocuments(Request $request, User $user)
