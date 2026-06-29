@@ -11,12 +11,14 @@
 
     RewriteEngine On
 
-    # Jika folder/file ada, jangan di-rewrite
     RewriteCond %{REQUEST_FILENAME} -d [OR]
     RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule ^ - [L]
 
-    # Semua aset diarahkan ke folder public
-    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{REQUEST_URI} (\.\w+$) [NC]
     RewriteRule ^(.*)$ public/$1 [L]
+
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ server.php [L]
 </IfModule>
