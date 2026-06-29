@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="40" height="40">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#2d5a27" stroke="#4a7c59" stroke-width="3"/>
+  
+  <!-- Inner circle -->
+  <circle cx="100" cy="100" r="75" fill="#ffffff" stroke="#2d5a27" stroke-width="2"/>
+  
+  <!-- Star at top -->
+  <polygon points="100,25 105,40 120,40 108,50 113,65 100,55 87,65 92,50 80,40 95,40" fill="#FFD700" stroke="#B8860B" stroke-width="1"/>
+  
+  <!-- Building/Monument in center -->
+  <rect x="85" y="60" width="30" height="50" fill="#8B4513" stroke="#654321" stroke-width="1"/>
+  <polygon points="85,60 100,45 115,60" fill="#A0522D" stroke="#654321" stroke-width="1"/>
+  
+  <!-- Trees on sides -->
+  <polygon points="65,80 70,65 75,80" fill="#228B22" stroke="#006400" stroke-width="1"/>
+  <rect x="68" y="80" width="4" height="15" fill="#8B4513"/>
+  
+  <polygon points="125,80 130,65 135,80" fill="#228B22" stroke="#006400" stroke-width="1"/>
+  <rect x="128" y="80" width="4" height="15" fill="#8B4513"/>
+  
+  <!-- Water waves at bottom -->
+  <path d="M 60 120 Q 70 115 80 120 T 100 120 T 120 120 T 140 120" stroke="#4169E1" stroke-width="2" fill="none"/>
+  <path d="M 60 125 Q 70 120 80 125 T 100 125 T 120 125 T 140 125" stroke="#4169E1" stroke-width="2" fill="none"/>
+  
+  <!-- Rice/wheat stalks -->
+  <path d="M 50 140 Q 55 135 60 140 Q 65 135 70 140" stroke="#DAA520" stroke-width="2" fill="none"/>
+  <path d="M 130 140 Q 135 135 140 140 Q 145 135 150 140" stroke="#DAA520" stroke-width="2" fill="none"/>
+  
+  <!-- Banner at bottom -->
+  <rect x="30" y="160" width="140" height="20" fill="#FFD700" stroke="#B8860B" stroke-width="1" rx="3"/>
+  <text x="100" y="173" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#2d5a27">JAWA TIMUR</text>
+  
+  <!-- Motto banner -->
+  <rect x="20" y="185" width="160" height="12" fill="#2d5a27" rx="2"/>
+  <text x="100" y="193" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" font-weight="bold" fill="#FFD700">JER BASUKI MAWA BEYA</text>
+</svg>
