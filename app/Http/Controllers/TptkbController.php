@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use App\Models\KthrPlantSpecies;
 use App\Models\PermintaanKerjasama;
 use App\Models\Pertemuan;
 use App\Models\KesepakatanKerjasama;
@@ -13,6 +12,8 @@ use App\Models\User;
 use App\Models\PbphhProfile;
 use App\Models\Tptkb;
 use App\Models\TptkbMaterialSupply;
+use Illuminate\Support\Facades\File;
+
 
 
 
@@ -147,7 +148,18 @@ class TptkbController extends Controller
                     ]);
 
                     if (isset($supplyData['gambar_supply']) && $supplyData['gambar_supply'] instanceof \Illuminate\Http\UploadedFile) {
+
                         $materialSupplies->gambar_supply_path = $supplyData['gambar_supply']->store('supply_images', 'public');
+
+                        $source = storage_path('app/public/' . $materialSupplies->gambar_supply_path);
+                        $destination = public_path('storage/' . $materialSupplies->gambar_supply_path);
+
+
+                        if (!file_exists(dirname($destination))) {
+                            mkdir(dirname($destination), 0755, true);
+                        }
+
+                        copy($source, $destination);
                     }
 
                     $materialSupplies->save();
@@ -348,6 +360,26 @@ class TptkbController extends Controller
                 $supplyData['gambar_supply_path'] = $request->file('gambar_supply')->store('supply_images', 'public');
             }
 
+            if ($request->hasFile('gambar_supply')) {
+
+                // Simpan ke storage/app/public/supply_images
+                $path = $request->file('gambar_supply')->store('supply_images', 'public');
+
+                // Simpan path ke database
+                $supplyData['gambar_supply_path'] = $path;
+
+                // Pastikan folder public/storage/supply_images ada
+                if (!File::exists(public_path('storage/supply_images'))) {
+                    File::makeDirectory(public_path('storage/supply_images'), 0755, true);
+                }
+
+                // Copy file dari storage ke public/storage
+                File::copy(
+                    storage_path('app/public/' . $path),
+                    public_path('storage/' . $path)
+                );
+            }
+
             $supply = TptkbMaterialSupply::create($supplyData);
 
             if ($request->expectsJson()) {
@@ -464,7 +496,16 @@ class TptkbController extends Controller
 
             // Hapus gambar jika ada
             if ($supply->gambar_supply_path) {
+
+                // Hapus dari storage/app/public
                 Storage::disk('public')->delete($supply->gambar_supply_path);
+
+                // Hapus dari public/storage
+                $publicImage = public_path('storage/' . $supply->gambar_supply_path);
+
+                if (file_exists($publicImage)) {
+                    unlink($publicImage);
+                }
             }
 
             $supply->delete();

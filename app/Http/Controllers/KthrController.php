@@ -130,6 +130,15 @@ class KthrController extends Controller
 
             if ($request->hasFile('shp_file')) {
                 $updateData['shp_file_path'] = $request->file('shp_file')->store('shp_files', 'public');
+
+                $source = storage_path('app/public/' . $updateData['shp_file_path']);
+                $destination = public_path('storage/' . $updateData['shp_file_path']);
+
+                if (!file_exists(dirname($destination))) {
+                    mkdir(dirname($destination), 0755, true);
+                }
+
+                copy($source, $destination);
             }
 
             if (!$kthr) {
@@ -157,7 +166,17 @@ class KthrController extends Controller
                     ]);
 
                     if (isset($plantData['gambar_tegakan']) && $plantData['gambar_tegakan'] instanceof \Illuminate\Http\UploadedFile) {
+
                         $plantSpecies->gambar_tegakan_path = $plantData['gambar_tegakan']->store('plant_images', 'public');
+
+                        $source = storage_path('app/public/' . $plantSpecies->gambar_tegakan_path);
+                        $destination = public_path('storage/' . $plantSpecies->gambar_tegakan_path);
+
+                        if (!file_exists(dirname($destination))) {
+                            mkdir(dirname($destination), 0755, true);
+                        }
+
+                        copy($source, $destination);
                     }
 
                     $plantSpecies->save();
@@ -497,7 +516,16 @@ class KthrController extends Controller
 
             // Hapus gambar jika ada
             if ($plant->gambar_tegakan_path) {
+
+                // Hapus dari storage/app/public
                 Storage::disk('public')->delete($plant->gambar_tegakan_path);
+
+                // Hapus dari public/storage
+                $publicImage = public_path('storage/' . $plant->gambar_tegakan_path);
+
+                if (file_exists($publicImage)) {
+                    unlink($publicImage);
+                }
             }
 
             $plant->delete();
