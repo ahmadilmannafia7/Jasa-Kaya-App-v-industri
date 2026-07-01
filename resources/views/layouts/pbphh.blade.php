@@ -19,7 +19,7 @@
         .navbar-dark .navbar-nav .nav-link {
             color: rgba(255, 255, 255, 0.9);
             transition: all 0.3s ease;
-        }
+        }a
 
         .navbar-dark .navbar-nav .nav-link:hover,
         .navbar-dark .navbar-nav .nav-link.active {
@@ -150,7 +150,7 @@
                         @endif
                     </a>
                 </li>
-                <li class="nav-item">
+                <!-- <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('pbphh.industry.*') ? 'active' : '' }}"
                         href="{{ route('pbphh.industry.partners') }}">
                         <i class="fas fa-building"></i>
@@ -163,7 +163,7 @@
                             <span class="badge bg-warning text-dark ms-auto">{{ $pendingRequests }}</span>
                         @endif
                     </a>
-                </li>
+                </li> -->
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('pbphh.material-needs') ? 'active' : '' }}"
                         href="{{ route('pbphh.material-needs') }}">
